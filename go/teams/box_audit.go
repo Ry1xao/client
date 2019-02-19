@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/keybase/client/go/libkb"
 	"github.com/keybase/client/go/protocol/keybase1"
 	"github.com/keybase/go-codec/codec"
@@ -23,8 +24,22 @@ type BoxAuditVersion = int
 const CurrentBoxAuditVersion BoxAuditVersion = 1
 
 type BoxAuditor struct {
-	// TODO RM
-	i int
+	n int
+}
+
+func NewBoxAuditor(g *libkb.GlobalContext) *BoxAuditor {
+	ret := &BoxAuditor{n: 5}
+	return ret
+}
+
+func NewBoxAuditorAndInstall(g *libkb.GlobalContext) {
+	g.Log.Warning("@@@NewBoxAuditorAndInstall")
+	g.SetTeamBoxAuditor(NewBoxAuditor(g))
+	// if g.GetEnv().GetDisableTeamBoxAuditor() {
+	// 	g.Log.CDebugf(context.TODO(), "Using dummy auditor, audit disabled")
+	// 	g.SetTeamBoxAuditor(dummyBoxAuditor{})
+	// } else {
+	// }
 }
 
 type BoxAuditStatus int
@@ -146,7 +161,7 @@ func (a *BoxAuditor) PushRetryQueue(mctx libkb.MetaContext, teamID keybase1.Team
 // Performs one attempt of a BoxAudit. If one is in progress for the teamid,
 // make a new attempt. If exceeded max tries, return error.
 // Otherwise, make a new audit and fill it with one attempt. Return an error if it's fatal only.
-func (a *BoxAuditor) AuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID) error {
+func (a *BoxAuditor) BoxAuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID) error {
 	mctx = mctx.WithLogTag(BoxAuditorTag)
 
 	// Should lock this teamid somehow
@@ -160,7 +175,7 @@ func (a *BoxAuditor) AuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID) e
 	}
 
 	lastAudit := log.Last()
-	if lastAudit.InProgress {
+	if lastAudit != nil && lastAudit.InProgress {
 		// Different path - new attempt on old audit
 		return nil
 	}
@@ -187,9 +202,14 @@ func (a *BoxAuditor) AuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID) e
 		return err
 	}
 
-	if !attempt.Status.IsOK() && !attempt.Status.IsFatal() {
-		// Add to schedule
+	// later subsumed by scheduler
+	if !attempt.Status.IsOK() {
+		return attempt.Error
 	}
+
+	// if !attempt.Status.IsOK() && !attempt.Status.IsFatal() {
+	// 	// Add to schedule
+	// }
 
 	return nil
 }
@@ -229,6 +249,9 @@ func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID) Box
 	attempt := BoxAuditAttempt{
 		Time: time.Now(),
 	}
+	defer func() {
+		spew.Dump(attempt)
+	}()
 
 	// what if its open/public team?
 	team, err := Load(context.TODO(), mctx.G(), keybase1.LoadTeamArg{
@@ -268,6 +291,8 @@ func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID) Box
 		return attempt
 	}
 	attempt.ExpectedSummary = &expectedSummary
+	fmt.Println()
+	fmt.Printf("%+v\n", expectedSummary)
 
 	actualSummary, err := retrieveAndVerifySigchainSummary(mctx, team)
 	if err != nil {
@@ -275,6 +300,7 @@ func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID) Box
 		attempt.Error = err
 		return attempt
 	}
+	fmt.Printf("%+v\n", actualSummary)
 
 	if !bytes.Equal(expectedSummary.Hash(), actualSummary.Hash()) {
 		attempt.Status = FailureRetryable
@@ -371,7 +397,7 @@ func retrieveAndVerifySigchainSummary(mctx libkb.MetaContext, team *Team) (boxPu
 
 	a := libkb.NewAPIArg("team/audit")
 	a.Args = libkb.HTTPArgs{
-		"team_id":    libkb.S{Val: team.ID.String()},
+		"id":         libkb.S{Val: team.ID.String()},
 		"generation": libkb.I{Val: int(g)},
 	}
 	a.NetContext = mctx.Ctx()
@@ -445,4 +471,8 @@ func unmarshalAndVerifyBatch(batch summaryAuditBatch, expectedHash string) (boxP
 	}
 
 	return table, nil
+}
+
+func (a *BoxAuditor) OnLogout(mctx libkb.MetaContext) {
+	return
 }

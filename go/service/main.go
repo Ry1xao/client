@@ -330,6 +330,7 @@ func (d *Service) setupEphemeralKeys() error {
 }
 
 func (d *Service) setupTeams() error {
+	d.G().Log.Warning("@@@setupTeams")
 	teams.ServiceInit(d.G())
 	return nil
 }

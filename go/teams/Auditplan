@@ -1,0 +1,92 @@
+// Rotate before each attempt?
+BoxAudit {
+    // No notion of when to retry, bBoxAuditRetrier does this case by case
+    []struct{
+        Ctime
+        TeamId
+        AuditID
+        // maybe we can get rid of the audit id - it's just the last Audit in the team's log. Since InProgress etc.
+        // still maybe good for debugging
+    }
+}
+
+
+Litebot disable hej
+
+Different scheduling on mobile?
+
+be careful, what if you're not in team anymore? then can't load but OK...
+Or what if you are but server lies to you. Ok, *EVERY* time we do a load
+ we need to cache that we've accessed that team previously. Then if you get
+ a fatal error you can never load that team again until Audit resolves.
+
+ but also, every time you do a team load successfully, this needs to be injected into list of teams to retry0
+
+Every 24 hours, *every* person will make a list of all the teams they are in.
+Then, filter it.
+If we had a successful audit less than 24 hours ago *and* we're on the same team generation. remove it.
+
+// Only keep last weeks of successful logs? Always keep failed logs?
+
+TeamID -> {
+    BoxAuditHistory: (ordered by descending ctime) []{
+        Version Int,
+        AuditId, // personal uuid
+        Attempts []Attempt {
+            Ctime,
+            Result,
+            Generation,
+            ExpectedSummary,
+            ActualSummary,
+        }
+    }
+}
+
+What happens if member is added while audit happens or some s8rs thing like that?
+So may always need to do retry even if OK server...
+
+Choose a random team from the remainder.
+Do the audit, and insert it into the log.
+switch result
+        OkVerified -> NoOp
+        OkNotAttempted -> NoOp
+        FailureWillRotate -> * Ephemeral
+            Rotate.
+            return FailureRetryable
+        FailureRetryable * Ephemeral
+            nAttempts = len(History[AuditId].Attempts)
+            If nAttempts >= 6
+                return FailureTryAttemptsExhausted
+            if nAttempts = 1
+                Schedule an attempt in 10 minutes to retry
+            else
+                Schedule an attempt in 6 hours to retry
+        FailureMaliciousServer * Permanent
+            Something obvious.
+            Immediately throw up a black bar. Can we have a permanent black bar?
+            Do similar thing to piotr's
+        FailureRetryAttemptsExhausted * Permanent
+            Schedule exhausted of non obvious failures.
+            If an entire schedule fails, then throw up a black bar.
+
+            If we rotate and succeed, no schedule?
+
+Make sure we dont have multiple schedules for the same team overlapping...
+
+Also CLI options to trigger box audits... how does that interact withs chedule? Maybe no scheduling.
+
+Should we try to make it random but not repeat too quickly? Or rely on stats?
+
+OK PROBLEM:
+You scheduled a team to audit. You were removed.
+Then you tried to audit 6 times but failed, so you blocked future team loads.
+And then you were readded. But you can't team load?
+Maybe the hej should be at the END of the teamload, so if you're blocked it'll
+keep going and try to do an audit, and only fail if it can't do both successfully.
+
+Also need to figure out what to do if network is down consistently and wec an't do audits. Maybe just consider a failure and
+have the team loader do the audit
+
+env var to disable too
+
+NEEED WAY MORE LOGGING!
