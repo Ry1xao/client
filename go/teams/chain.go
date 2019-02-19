@@ -1006,14 +1006,15 @@ func (t *teamSigchainPlayer) addInnerLink(
 			}
 		}
 	case libkb.LinkTypeChangeMembership:
-		err = enforce(LinkRules{
+		changeMembershipRules := LinkRules{
 			Members:             TristateRequire,
 			PerTeamKey:          TristateOptional,
 			Admin:               TristateOptional,
 			CompletedInvites:    TristateOptional,
 			BoxSummaryHash:      TristateOptional,
 			AllowInImplicitTeam: true,
-		})
+		}
+		err = enforce(changeMembershipRules)
 		if err != nil {
 			return res, err
 		}
@@ -1146,6 +1147,15 @@ func (t *teamSigchainPlayer) addInnerLink(
 			return res, fmt.Errorf("could not determine if high user set changed")
 		}
 
+		if team.PerTeamKey != nil {
+			// TODO won't be true until after a certain date...
+			changeMembershipRules.BoxSummaryHash = TristateRequire
+			err = enforce(changeMembershipRules)
+			if err != nil {
+				return res, err
+			}
+		}
+
 		moveState()
 		t.updateMembership(&res.newState, roleUpdates, payload.SignatureMetadata())
 		t.completeInvites(&res.newState, team.CompletedInvites)
@@ -1164,13 +1174,6 @@ func (t *teamSigchainPlayer) addInnerLink(
 			}
 			res.newState.inner.PerTeamKeys[newKey.Gen] = newKey
 			res.newState.inner.PerTeamKeyCTime = keybase1.UnixTime(payload.Ctime)
-
-			err = enforce(LinkRules{
-				BoxSummaryHash: TristateRequire,
-			})
-			if err != nil {
-				return res, err
-			}
 		}
 	case libkb.LinkTypeRotateKey:
 		err = enforce(LinkRules{
