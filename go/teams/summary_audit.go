@@ -50,9 +50,9 @@ type AuditResult struct {
 const SummaryAuditorTag = "SUMAUD"
 
 func (a *SummaryAuditor) Audit(mctx libkb.MetaContext, teamID keybase1.TeamID) (result AuditResult, err error) {
-	// what if its open/public team?
 	mctx = mctx.WithLogTag(SummaryAuditorTag)
 
+	// what if its open/public team?
 	team, err := Load(context.TODO(), mctx.G(), keybase1.LoadTeamArg{
 		ID:          teamID,
 		ForceRepoll: true,
@@ -67,7 +67,7 @@ func (a *SummaryAuditor) Audit(mctx libkb.MetaContext, teamID keybase1.TeamID) (
 
 	shouldAudit, err := a.ShouldAudit(mctx, *team)
 	if err != nil {
-		return AuditResult{}, err
+		return AuditResult{Status: FailureRetryable}, err
 	}
 	if !shouldAudit {
 		return AuditResult{Status: OKNotAttempted}, nil
@@ -75,16 +75,16 @@ func (a *SummaryAuditor) Audit(mctx libkb.MetaContext, teamID keybase1.TeamID) (
 
 	expectedSummary, err := calculateExpectedSummary(mctx, team)
 	if err != nil {
-		return AuditResult{}, err
+		return AuditResult{Status: FailureRetryable}, err
 	}
 
 	actualSummary, err := retrieveAndVerifySigchainSummary(mctx, team)
 	if err != nil {
-		return AuditResult{}, err
+		return AuditResult{Status: FailureRetryable}, err
 	}
 
 	if !bytes.Equal(expectedSummary.Hash(), actualSummary.Hash()) {
-		return AuditResult{}, fmt.Errorf("box summary hash mismatch")
+		return AuditResult{Status: FailureRetryable}, fmt.Errorf("box summary hash mismatch")
 	}
 
 	return AuditResult{Status: OKVerified}, nil
@@ -121,7 +121,6 @@ func calculateExpectedSummary(mctx libkb.MetaContext, team *Team) (boxPublicSumm
 		return nil
 	}
 
-	// DRYify
 	err = add(members.Owners)
 	if err != nil {
 		return boxPublicSummary{}, err

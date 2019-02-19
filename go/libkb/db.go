@@ -178,6 +178,7 @@ const (
 	DBUserPlusAllKeysV1 = 0x19
 
 	DBChatCollapses            = 0xbf
+	DBBoxAuditor               = 0xc0
 	DBMerkleAudit              = 0xca
 	DBUnfurler                 = 0xcb
 	DBStellarDisclaimer        = 0xcc
