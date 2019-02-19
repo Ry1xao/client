@@ -687,6 +687,11 @@ type TeamAuditor interface {
 	OnLogout(m MetaContext)
 }
 
+type TeamBoxAuditor interface {
+	BoxAuditTeam(m MetaContext, id keybase1.TeamID) (err error)
+	OnLogout(m MetaContext)
+}
+
 // MiniChatPayment is the argument for sending an in-chat payment.
 type MiniChatPayment struct {
 	Username NormalizedUsername
