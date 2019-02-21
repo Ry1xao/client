@@ -49,12 +49,13 @@ func TestBoxAudit(t *testing.T) {
 	_, err := AddMember(m[0].Ctx(), tcs[0].G, teamName.String(), fus[1].Username, keybase1.TeamRole_ADMIN)
 	require.NoError(t, err)
 
-	addC(A)
-	rmC(A)
-	// load(B)
-	// addC(B)
-
 	auditor := tcs[0].G.GetTeamBoxAuditor()
-	err = auditor.BoxAuditTeam(m[0], teamID)
-	require.NoError(t, err)
+
+	require.NoError(t, auditor.BoxAuditTeam(m[0], teamID))
+	addC(A)
+	require.NoError(t, auditor.BoxAuditTeam(m[0], teamID))
+	rmC(A)
+	require.NoError(t, auditor.BoxAuditTeam(m[0], teamID))
+	addC(B)
+	require.NoError(t, auditor.BoxAuditTeam(m[0], teamID))
 }

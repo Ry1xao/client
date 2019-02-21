@@ -90,3 +90,7 @@ have the team loader do the audit
 env var to disable too
 
 NEEED WAY MORE LOGGING!
+
+BTW We need to keep a list of all teams we load for queueing into AutoAudit
+
+TO DO limit size of log

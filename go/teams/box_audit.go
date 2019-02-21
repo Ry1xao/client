@@ -17,6 +17,10 @@ import (
 	"github.com/keybase/go-codec/codec"
 )
 
+type BoxAuditTeamstore struct {
+	TeamIDs []keybase1.TeamID
+}
+
 // TODO FEATUREFLAG ME?
 
 type BoxAuditVersion = int
@@ -60,6 +64,10 @@ func (s BoxAuditStatus) IsOK() bool {
 func (s BoxAuditStatus) IsFatal() bool {
 	// should use enum... could forget to add
 	return s == FailureMaliciousServer || s == FailureRetryAttemptsExhausted
+}
+
+func (s BoxAuditStatus) IsRetryable() bool {
+	return !s.IsOK() && !s.IsFatal()
 }
 
 type BoxAuditID = []byte
@@ -140,6 +148,8 @@ func (a *BoxAuditor) PopRetryQueue(mctx libkb.MetaContext) (*BoxAuditQueueItem, 
 }
 
 // There are no server operations here, so we don't need to be careful about retrying on possibly malicious errors
+// TODO do we need to filter for duplicates?
+// Maybe this has some function name suffix indicating errors are not server driven
 func (a *BoxAuditor) PushRetryQueue(mctx libkb.MetaContext, teamID keybase1.TeamID, auditID BoxAuditID) error {
 	var queue BoxAuditQueue
 	found, err := mctx.G().LocalDb.GetInto(&queue, libkb.DbKey{Typ: libkb.DBBoxAuditor, Key: BoxAuditQueueDBKey})
@@ -158,6 +168,24 @@ func (a *BoxAuditor) PushRetryQueue(mctx libkb.MetaContext, teamID keybase1.Team
 	return nil
 }
 
+type NonfatalBoxAuditError struct {
+	inner error
+}
+
+func (e NonfatalBoxAuditError) Error() string {
+	return fmt.Sprintf("This audit failed, but will be retried later: %s.", e.inner)
+}
+
+type FatalBoxAuditError struct {
+	inner error
+}
+
+func (e FatalBoxAuditError) Error() string {
+	return fmt.Sprintf("This audit failed fatally: %s", e.inner)
+}
+
+const MaxRetryAttempts = 6
+
 // Performs one attempt of a BoxAudit. If one is in progress for the teamid,
 // make a new attempt. If exceeded max tries, return error.
 // Otherwise, make a new audit and fill it with one attempt. Return an error if it's fatal only.
@@ -167,49 +195,62 @@ func (a *BoxAuditor) BoxAuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID
 	// Should lock this teamid somehow
 	log, err := a.GetLogFromDisk(mctx, teamID)
 	if err != nil {
-		return err
+		return NonfatalBoxAuditError{err}
 	}
 
 	if log == nil {
 		log = NewBoxAuditLog()
 	}
 
-	lastAudit := log.Last()
-	if lastAudit != nil && lastAudit.InProgress {
-		// Different path - new attempt on old audit
-		return nil
-	}
-
-	// If the last audit was completed, start a new audit.
-
 	attempt := a.Attempt(mctx, teamID)
 
-	id, err := NewBoxAuditID()
-	if err != nil {
-		return err
-	}
+	lastAudit := log.Last()
+	var id BoxAuditID
+	if lastAudit != nil && lastAudit.InProgress {
+		// If there's already an inprogress Audit (i.e., previous failure and
+		// we're doing a retry), do a new attempt in the same audit
+		id = lastAudit.ID
+		newAudit := BoxAudit{
+			ID:         lastAudit.ID,
+			InProgress: attempt.Status.IsRetryable(),
+			Attempts:   append(lastAudit.Attempts, attempt),
+		}
+		log.Audits[len(log.Audits)-1] = newAudit
+	} else {
+		// If the last audit was completed, start a new audit.
+		id, err = NewBoxAuditID()
+		if err != nil {
+			return NonfatalBoxAuditError{err}
+		}
 
-	audit := BoxAudit{
-		ID:         id,
-		InProgress: !attempt.Status.IsOK(),
-		Attempts:   []BoxAuditAttempt{attempt},
-	}
+		audit := BoxAudit{
+			ID:         id,
+			InProgress: attempt.Status.IsRetryable(),
+			Attempts:   []BoxAuditAttempt{attempt},
+		}
 
-	log.Audits = append((*log).Audits, audit)
+		log.Audits = append((*log).Audits, audit)
+	}
 
 	err = a.PutLogToDisk(mctx, teamID, log)
 	if err != nil {
-		return err
+		return NonfatalBoxAuditError{err}
 	}
 
-	// later subsumed by scheduler
 	if !attempt.Status.IsOK() {
-		return attempt.Error
+		if attempt.Status.IsFatal() {
+			return FatalBoxAuditError{attempt.Error}
+		} else {
+			if len(log.Last().Attempts) >= MaxRetryAttempts {
+				return FatalBoxAuditError{attempt.Error}
+			}
+			err := a.PushRetryQueue(mctx, teamID, id)
+			if err != nil {
+				return NonfatalBoxAuditError{err}
+			}
+			return NonfatalBoxAuditError{attempt.Error}
+		}
 	}
-
-	// if !attempt.Status.IsOK() && !attempt.Status.IsFatal() {
-	// 	// Add to schedule
-	// }
 
 	return nil
 }
@@ -273,6 +314,7 @@ func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID) Box
 	g := team.Generation()
 	attempt.Generation = &g
 
+	// TODO SHOULDNT audit if Open
 	shouldAudit, err := a.ShouldAudit(mctx, *team)
 	if err != nil {
 		attempt.Status = FailureRetryable

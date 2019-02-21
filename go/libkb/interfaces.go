@@ -689,6 +689,7 @@ type TeamAuditor interface {
 
 type TeamBoxAuditor interface {
 	BoxAuditTeam(m MetaContext, id keybase1.TeamID) (err error)
+	// TODO actually register this
 	OnLogout(m MetaContext)
 }
 
