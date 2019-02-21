@@ -2,6 +2,7 @@
 export type FeatureFlags = {|
   admin: boolean,
   chatIndexProfilingEnabled: boolean,
+  dbCleanEnabled: boolean,
   foldersInProfileTab: boolean,
   identify3: boolean,
   moveOrCopy: boolean,

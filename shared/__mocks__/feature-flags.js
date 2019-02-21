@@ -9,6 +9,7 @@ if (!__STORYBOOK__) {
 const ff: FeatureFlags = {
   admin: false,
   chatIndexProfilingEnabled: false,
+  dbCleanEnabled: false,
   foldersInProfileTab: true,
   identify3: true,
   moveOrCopy: true,
