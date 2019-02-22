@@ -95,7 +95,7 @@ func (h *IdentifyHandler) IdentifyLite(netCtx context.Context, arg keybase1.Iden
 
 func (h *IdentifyHandler) identifyLiteUser(netCtx context.Context, arg keybase1.IdentifyLiteArg) (res keybase1.IdentifyLiteRes, err error) {
 	m := libkb.NewMetaContext(netCtx, h.G())
-	m.CDebugf("IdentifyLite on user")
+	m.Debug("IdentifyLite on user")
 
 	var uid keybase1.UID
 	if arg.Id.Exists() {

@@ -94,7 +94,7 @@ func (i *UIAdapter) Start(user string, reason keybase1.IdentifyReason, force boo
 
 	err := i.ui.Identify3ShowTracker(i.M().Ctx(), arg)
 	if err != nil {
-		i.M().CDebugf("Failed to call Identify3ShowTracker: %s", err)
+		i.M().Debug("Failed to call Identify3ShowTracker: %s", err)
 	}
 	return err
 }
@@ -136,7 +136,7 @@ func (i *UIAdapter) priority(key string) int {
 func (i *UIAdapter) setRowStatus(arg *keybase1.Identify3Row, lcr keybase1.LinkCheckResult) bool {
 
 	needUpgrade := false
-	i.M().CDebugf("setRowStatus(lcr: %+v, cached: %+v, diff: %+v, remoteDiff: %+v, hint: %+v)",
+	i.M().Debug("setRowStatus(lcr: %+v, cached: %+v, diff: %+v, remoteDiff: %+v, hint: %+v)",
 		lcr, lcr.Cached, lcr.Diff, lcr.RemoteDiff, lcr.Hint)
 
 	switch {
@@ -195,7 +195,7 @@ func (i *UIAdapter) setRowStatus(arg *keybase1.Identify3Row, lcr keybase1.LinkCh
 		arg.Metas = append(arg.Metas, keybase1.Identify3RowMeta{Color: arg.Color, Label: "unreachable"})
 
 	default:
-		i.M().CWarningf("unhandled ID3 setRowStatus")
+		i.M().Warning("unhandled ID3 setRowStatus")
 
 	}
 	return needUpgrade
@@ -353,7 +353,7 @@ func (i *UIAdapter) checkEldest(key keybase1.IdentifyKey) {
 	}
 	err := i.ui.Identify3UserReset(i.M().Ctx(), i.session.ID())
 	if err != nil {
-		i.M().CDebugf("Error sending user reset message: %s", err)
+		i.M().Debug("Error sending user reset message: %s", err)
 	}
 }
 
@@ -382,9 +382,9 @@ func (i *UIAdapter) plumbUncheckedProof(row keybase1.IdentifyRow) {
 func (i *UIAdapter) updateRow(arg keybase1.Identify3Row) error {
 	arg.GuiID = i.session.ID()
 	err := i.ui.Identify3UpdateRow(i.M().Ctx(), arg)
-	i.M().CDebugf("update row %+v", arg)
+	i.M().Debug("update row %+v", arg)
 	if err != nil {
-		i.M().CDebugf("Failed to send update row (%+v): %s", arg, err)
+		i.M().Debug("Failed to send update row (%+v): %s", arg, err)
 	}
 	return err
 }
@@ -401,7 +401,7 @@ func (i *UIAdapter) shouldSkipSendResult() bool {
 
 func (i *UIAdapter) sendResult(typ keybase1.Identify3ResultType) error {
 	if i.shouldSkipSendResult() {
-		i.M().CDebugf("Skipping send result, already done")
+		i.M().Debug("Skipping send result, already done")
 		return nil
 	}
 	arg := keybase1.Identify3ResultArg{
@@ -411,7 +411,7 @@ func (i *UIAdapter) sendResult(typ keybase1.Identify3ResultType) error {
 
 	err := i.ui.Identify3Result(i.M().Ctx(), arg)
 	if err != nil {
-		i.M().CDebugf("Failed to send result (%+v): %s", arg, err)
+		i.M().Debug("Failed to send result (%+v): %s", arg, err)
 	}
 	return err
 }
@@ -449,7 +449,7 @@ func (i *UIAdapter) plumbCryptocurrency(crypto keybase1.Cryptocurrency) {
 	case string(libkb.CryptocurrencyFamilyZCash):
 		key = "zcash"
 	default:
-		i.M().CDebugf("unrecgonized crypto family: %v, %v", crypto.Type, crypto.Family)
+		i.M().Debug("unrecgonized crypto family: %v, %v", crypto.Type, crypto.Family)
 	}
 	i.updateRow(keybase1.Identify3Row{
 		Key:          key,
@@ -528,7 +528,7 @@ func (i *UIAdapter) DisplayUserCard(card keybase1.UserCard) error {
 	}
 	err := i.ui.Identify3UpdateUserCard(i.M().Ctx(), arg)
 	if err != nil {
-		i.M().CDebugf("Failed to send update card: %s", err)
+		i.M().Debug("Failed to send update card: %s", err)
 	}
 	return nil
 }

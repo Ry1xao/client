@@ -545,11 +545,11 @@ func (d *Service) runMerkleAudit(ctx context.Context) {
 	eng := engine.NewMerkleAudit(d.G(), &engine.MerkleAuditArgs{})
 	m := libkb.NewMetaContextBackground(d.G())
 	if err := engine.RunEngine2(m, eng); err != nil {
-		m.CWarningf("merkle root background audit error: %v", err)
+		m.Warning("merkle root background audit error: %v", err)
 	}
 
 	d.G().PushShutdownHook(func() error {
-		m.CDebugf("stopping merkle root background audit engine")
+		m.Debug("stopping merkle root background audit engine")
 		eng.Shutdown()
 		return nil
 	})
@@ -654,7 +654,7 @@ func (d *Service) chatOutboxPurgeCheck() {
 	ticker := libkb.NewBgTicker(5 * time.Minute)
 	m := libkb.NewMetaContextBackground(d.G()).WithLogTag("OBOXPRGE")
 	d.G().PushShutdownHook(func() error {
-		m.CDebugf("stopping chatOutboxPurgeCheck loop")
+		m.Debug("stopping chatOutboxPurgeCheck loop")
 		ticker.Stop()
 		return nil
 	})
@@ -669,7 +669,7 @@ func (d *Service) chatOutboxPurgeCheck() {
 			g := globals.NewContext(d.G(), d.ChatG())
 			ephemeralPurged, err := storage.NewOutbox(g, gregorUID).OutboxPurge(context.Background())
 			if err != nil {
-				m.CDebugf("OutboxPurge error: %s", err)
+				m.Debug("OutboxPurge error: %s", err)
 				continue
 			}
 			if len(ephemeralPurged) > 0 {
@@ -688,27 +688,27 @@ func (d *Service) hourlyChecks() {
 	ticker := libkb.NewBgTicker(1 * time.Hour)
 	m := libkb.NewMetaContextBackground(d.G()).WithLogTag("HRLY")
 	d.G().PushShutdownHook(func() error {
-		m.CDebugf("stopping hourlyChecks loop")
+		m.Debug("stopping hourlyChecks loop")
 		ticker.Stop()
 		return nil
 	})
 	go func() {
 		// do this quickly
 		if err := m.LogoutAndDeprovisionIfRevoked(); err != nil {
-			m.CDebugf("LogoutAndDeprovisionIfRevoked error: %s", err)
+			m.Debug("LogoutAndDeprovisionIfRevoked error: %s", err)
 		}
 		for {
 			<-ticker.C
-			m.CDebugf("+ hourly check loop")
-			m.CDebugf("| checking if current device revoked")
+			m.Debug("+ hourly check loop")
+			m.Debug("| checking if current device revoked")
 			if err := m.LogoutAndDeprovisionIfRevoked(); err != nil {
-				m.CDebugf("LogoutAndDeprovisionIfRevoked error: %s", err)
+				m.Debug("LogoutAndDeprovisionIfRevoked error: %s", err)
 			}
 
-			m.CDebugf("| checking tracks on an hour timer")
+			m.Debug("| checking tracks on an hour timer")
 			libkb.CheckTracking(m.G())
 
-			m.CDebugf("- hourly check loop")
+			m.Debug("- hourly check loop")
 		}
 	}()
 }
@@ -722,9 +722,9 @@ func (d *Service) deviceCloneSelfCheck() error {
 	}
 	newClones := after - before
 
-	m.CDebugf("deviceCloneSelfCheck: is there a new clone? %v", newClones > 0)
+	m.Debug("deviceCloneSelfCheck: is there a new clone? %v", newClones > 0)
 	if newClones > 0 {
-		m.CDebugf("deviceCloneSelfCheck: notifying user %v -> %v restarts", before, after)
+		m.Debug("deviceCloneSelfCheck: notifying user %v -> %v restarts", before, after)
 		d.G().NotifyRouter.HandleDeviceCloneNotification(newClones)
 	}
 	return nil
@@ -746,16 +746,16 @@ func (d *Service) slowChecks() {
 		m := libkb.NewMetaContext(ctx, d.G()).WithLogTag("SLOWCHK")
 		for {
 			<-ticker.C
-			m.CDebugf("+ slow checks loop")
-			m.CDebugf("| checking if current device should log out")
+			m.Debug("+ slow checks loop")
+			m.Debug("| checking if current device should log out")
 			if err := d.G().LogoutSelfCheck(m.Ctx()); err != nil {
-				m.CDebugf("LogoutSelfCheck error: %s", err)
+				m.Debug("LogoutSelfCheck error: %s", err)
 			}
-			m.CDebugf("| checking if current device is a clone")
+			m.Debug("| checking if current device is a clone")
 			if err := d.deviceCloneSelfCheck(); err != nil {
-				m.CDebugf("deviceCloneSelfCheck error: %s", err)
+				m.Debug("deviceCloneSelfCheck error: %s", err)
 			}
-			m.CDebugf("- slow checks loop")
+			m.Debug("- slow checks loop")
 		}
 	}()
 }
@@ -800,7 +800,7 @@ func (d *Service) runBackgroundPerUserKeyUpgrade() {
 		m := libkb.NewMetaContextBackground(d.G())
 		err := engine.RunEngine2(m, eng)
 		if err != nil {
-			m.CWarningf("per-user-key background upgrade error: %v", err)
+			m.Warning("per-user-key background upgrade error: %v", err)
 		}
 	}()
 
@@ -817,7 +817,7 @@ func (d *Service) runBackgroundPerUserKeyUpkeep() {
 		m := libkb.NewMetaContextBackground(d.G())
 		err := engine.RunEngine2(m, eng)
 		if err != nil {
-			m.CWarningf("per-user-key background upkeep error: %v", err)
+			m.Warning("per-user-key background upkeep error: %v", err)
 		}
 	}()
 
@@ -834,7 +834,7 @@ func (d *Service) runBackgroundWalletUpkeep() {
 		m := libkb.NewMetaContextBackground(d.G())
 		err := engine.RunEngine2(m, eng)
 		if err != nil {
-			m.CWarningf("background WalletUpkeep error: %v", err)
+			m.Warning("background WalletUpkeep error: %v", err)
 		}
 	}()
 
@@ -861,9 +861,9 @@ func (d *Service) OnLogin() error {
 }
 
 func (d *Service) OnLogout(m libkb.MetaContext) (err error) {
-	defer m.CTrace("Service#OnLogout", func() error { return err })()
+	defer m.Trace("Service#OnLogout", func() error { return err })()
 	log := func(s string) {
-		m.CDebugf("Service#OnLogout: %s", s)
+		m.Debug("Service#OnLogout: %s", s)
 	}
 
 	log("canceling live RPCs")
@@ -1184,8 +1184,8 @@ func (d *Service) tryLogin(ctx context.Context) {
 		eng := engine.NewLoginOffline(d.G())
 		m := libkb.NewMetaContext(ctx, d.G())
 		if err := engine.RunEngine2(m, eng); err != nil {
-			m.CDebugf("error running LoginOffline on service startup: %s", err)
-			m.CDebugf("trying LoginProvisionedDevice")
+			m.Debug("error running LoginOffline on service startup: %s", err)
+			m.Debug("trying LoginProvisionedDevice")
 
 			// Standalone mode quirk here. We call tryLogin when client is
 			// launched in standalone to unlock the same keys that we would
@@ -1198,17 +1198,17 @@ func (d *Service) tryLogin(ctx context.Context) {
 			// Keyrings will always be loaded.
 
 			if m.G().Keyrings == nil {
-				m.CDebugf("tryLogin: Configuring Keyrings")
+				m.Debug("tryLogin: Configuring Keyrings")
 				m.G().ConfigureKeyring()
 			}
 
 			deng := engine.NewLoginProvisionedDevice(d.G(), "")
 			deng.SecretStoreOnly = true
 			if err := engine.RunEngine2(m, deng); err != nil {
-				m.CDebugf("error running LoginProvisionedDevice on service startup: %s", err)
+				m.Debug("error running LoginProvisionedDevice on service startup: %s", err)
 			}
 		} else {
-			m.CDebugf("success running LoginOffline on service startup")
+			m.Debug("success running LoginOffline on service startup")
 		}
 	})
 }

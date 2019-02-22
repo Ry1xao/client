@@ -49,7 +49,7 @@ func getPlatformInfo() keybase1.PlatformInfo {
 }
 
 func GetExtendedStatus(m MetaContext) (res keybase1.ExtendedStatus, err error) {
-	defer m.CTrace("GetExtendedStatus", func() error { return err })()
+	defer m.Trace("GetExtendedStatus", func() error { return err })()
 	g := m.G()
 
 	res.Standalone = g.Env.GetStandalone()
@@ -70,7 +70,7 @@ func GetExtendedStatus(m MetaContext) (res keybase1.ExtendedStatus, err error) {
 		}
 		device, err := ckf.GetCurrentDevice(g)
 		if err != nil {
-			m.CDebugf("| GetCurrentDevice failed: %s", err)
+			m.Debug("| GetCurrentDevice failed: %s", err)
 			res.DeviceErr = &keybase1.LoadDeviceErr{Where: "ckf.GetCurrentDevice", Desc: err.Error()}
 		} else {
 			res.Device = device.ProtExport()
@@ -85,7 +85,7 @@ func GetExtendedStatus(m MetaContext) (res keybase1.ExtendedStatus, err error) {
 		}
 		return nil
 	}); err != nil {
-		m.CDebugf("| could not load me user: %s", err)
+		m.Debug("| could not load me user: %s", err)
 		res.DeviceErr = &keybase1.LoadDeviceErr{Where: "libkb.LoadMe", Desc: err.Error()}
 	}
 
@@ -112,7 +112,7 @@ func GetExtendedStatus(m MetaContext) (res keybase1.ExtendedStatus, err error) {
 
 	current, all, err := GetAllProvisionedUsernames(m)
 	if err != nil {
-		m.CDebugf("| died in GetAllUsernames()")
+		m.Debug("| died in GetAllUsernames()")
 		return res, err
 	}
 	res.DefaultUsername = current.String()
