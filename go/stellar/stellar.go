@@ -301,7 +301,7 @@ func lookupSenderEntry(mctx libkb.MetaContext, accountID stellar1.AccountID) (st
 	case nil:
 		// ok
 	case libkb.AppStatusError:
-		if libkb.IsAppStatusErrorCode(err, keybase1.StatusCode_SCStellarMissingAccount) {
+		if libkb.IsAppStatusCode(err, keybase1.StatusCode_SCStellarMissingAccount) {
 			mctx.CDebugf("suppressing error: %v", err)
 			err = err.WithDesc("Sender account not found")
 		}
