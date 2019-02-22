@@ -693,6 +693,7 @@ type TeamAuditor interface {
 
 type TeamBoxAuditor interface {
 	BoxAuditTeam(m MetaContext, id keybase1.TeamID) (err error)
+	Attempt(m MetaContext, id keybase1.TeamID, rotateBeforeAudit bool) (keybase1.BoxAuditAttempt, error)
 	// TODO actually register this
 	OnLogout(m MetaContext)
 }

@@ -120,5 +120,8 @@ var _ TeamBoxAuditor = nullTeamBoxAuditor{}
 func (n nullTeamBoxAuditor) BoxAuditTeam(m MetaContext, id keybase1.TeamID) (err error) {
 	return fmt.Errorf("No team box auditor found. Are you running in standalone mode?")
 }
+func (n nullTeamBoxAuditor) Attempt(m MetaContext, id keybase1.TeamID, rotateBeforeAudit bool) (keybase1.BoxAuditAttempt, error) {
+	return keybase1.BoxAuditAttempt{}, fmt.Errorf("No team box auditor found. Are you running in standalone mode?")
+}
 func (n nullTeamBoxAuditor) OnLogout(m MetaContext) {}
 func newNullTeamBoxAuditor() nullTeamBoxAuditor     { return nullTeamBoxAuditor{} }

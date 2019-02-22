@@ -253,7 +253,8 @@ func (a *BoxAuditor) BoxAuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID
 	lastAudit := log.Last()
 	isRetry := lastAudit != nil && lastAudit.InProgress
 
-	attempt := a.Attempt(mctx, teamID, isRetry)
+	rotateBeforeAudit := isRetry
+	attempt := a.Attempt(mctx, teamID, rotateBeforeAudit)
 
 	var id BoxAuditID
 	if isRetry {
@@ -336,7 +337,7 @@ type BoxAuditAttempt struct {
 	ActualSummary *boxPublicSummary
 }
 
-func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID, isRetry bool) BoxAuditAttempt {
+func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID, rotateBeforeAudit bool) BoxAuditAttempt {
 	attempt := BoxAuditAttempt{
 		Time: time.Now(),
 	}
@@ -362,7 +363,7 @@ func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID, isR
 		return attempt
 	}
 
-	if isRetry {
+	if rotateBeforeAudit {
 		err := team.Rotate(mctx.Ctx())
 		if err != nil {
 			attempt.Status = FailureRetryable

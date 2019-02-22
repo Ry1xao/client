@@ -1,0 +1,87 @@
+{
+  "protocol": "audit",
+  "imports": [
+    {
+      "path": "common.avdl",
+      "type": "idl"
+    },
+    {
+      "path": "teams.avdl",
+      "type": "idl"
+    }
+  ],
+  "types": [
+    {
+      "type": "record",
+      "name": "BoxPublicSummary",
+      "fields": [
+        {
+          "type": {
+            "type": "map",
+            "values": "Seqno",
+            "keys": "UID"
+          },
+          "name": "table"
+        }
+      ]
+    },
+    {
+      "type": "record",
+      "name": "BoxAuditAttempt",
+      "fields": [
+        {
+          "type": "UnixTime",
+          "name": "ctime"
+        },
+        {
+          "type": [
+            null,
+            "string"
+          ],
+          "name": "error"
+        },
+        {
+          "type": [
+            null,
+            "PerTeamKeyGeneration"
+          ],
+          "name": "generation"
+        },
+        {
+          "type": [
+            null,
+            "BoxPublicSummary"
+          ],
+          "name": "expectedSummary"
+        },
+        {
+          "type": [
+            null,
+            "BoxPublicSummary"
+          ],
+          "name": "actualSummary"
+        }
+      ]
+    }
+  ],
+  "messages": {
+    "attemptBoxAudit": {
+      "request": [
+        {
+          "name": "sessionID",
+          "type": "int"
+        },
+        {
+          "name": "teamID",
+          "type": "TeamID"
+        },
+        {
+          "name": "rotateBeforeAudit",
+          "type": "boolean"
+        }
+      ],
+      "response": "BoxAuditAttempt"
+    }
+  },
+  "namespace": "keybase.1"
+}

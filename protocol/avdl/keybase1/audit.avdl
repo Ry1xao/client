@@ -1,0 +1,21 @@
+@namespace("keybase.1")
+protocol audit {
+    import idl "common.avdl";
+    import idl "teams.avdl";
+
+    record BoxPublicSummary {
+        map<UID, Seqno> table;
+    }
+
+    record BoxAuditAttempt {
+        UnixTime ctime;
+        union { null, string } error;
+        union { null, PerTeamKeyGeneration } generation;
+        union { null, BoxPublicSummary } expectedSummary;
+
+        // only non-nil if different from expectedSummary
+        union { null, BoxPublicSummary } actualSummary;
+    }
+
+    BoxAuditAttempt attemptBoxAudit(int sessionID, TeamID teamID, boolean rotateBeforeAudit);
+}
