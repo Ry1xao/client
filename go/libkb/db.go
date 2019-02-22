@@ -95,6 +95,9 @@ func (j *JSONLocalDb) ForceOpen() error      { return j.engine.ForceOpen() }
 func (j *JSONLocalDb) Close() error          { return j.engine.Close() }
 func (j *JSONLocalDb) Nuke() (string, error) { return j.engine.Nuke() }
 func (j *JSONLocalDb) Stats() string         { return j.engine.Stats() }
+func (j *JSONLocalDb) KeysWithPrefixes(prefixes ...[]byte) (DBKeySet, error) {
+	return j.engine.KeysWithPrefixes(prefixes...)
+}
 
 func (j *JSONLocalDb) PutRaw(id DbKey, b []byte) error       { return j.engine.Put(id, nil, b) }
 func (j *JSONLocalDb) GetRaw(id DbKey) ([]byte, bool, error) { return j.engine.Get(id) }
@@ -221,6 +224,14 @@ const (
 	DBMerkleStore              = 0xfd
 	DBChatConvFailures         = 0xfe
 	DBTeamList                 = 0xff
+)
+
+// Note(maxtaco) 2018.10.08 --- Note a bug here, that we used the `libkb.DBChatInbox` type here.
+// That's a copy-paste bug, but we get away with it since we have a `tid:` prefix that
+// disambiguates these entries from true Chat entries. We're not going to fix it now
+// since it would kill the team cache, but sometime in the future we should fix it.
+const (
+	DBSlowTeamsAlias = DBChatInbox
 )
 
 const (

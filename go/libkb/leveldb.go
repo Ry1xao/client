@@ -13,6 +13,7 @@ import (
 	errors "github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // table names
@@ -322,6 +323,34 @@ func (l *LevelDb) OpenTransaction() (LocalDbTransaction, error) {
 		return LevelDbTransaction{}, err
 	}
 	return ltr, nil
+}
+
+func (l *LevelDb) KeysWithPrefixes(prefixes ...[]byte) (DBKeySet, error) {
+	m := make(map[DbKey]bool)
+
+	l.Lock()
+	defer l.Unlock()
+
+	// TODO need to lock?
+	opts := &opt.ReadOptions{DontFillCache: true}
+	for _, prefix := range prefixes {
+		iter := l.db.NewIterator(util.BytesPrefix(prefix), opts)
+		for iter.Next() {
+			_, dbKey, err := DbKeyParse(string(iter.Key()))
+			if err != nil {
+				return m, err
+			}
+			m[dbKey] = true
+		}
+		// TODO need to defer Release?
+		iter.Release()
+		err := iter.Error()
+		if err != nil {
+			return nil, nil
+		}
+	}
+
+	return m, nil
 }
 
 type LevelDbTransaction struct {

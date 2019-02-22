@@ -7,18 +7,59 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/keybase/client/go/libkb"
-	"github.com/keybase/client/go/protocol/keybase1"
 	"github.com/keybase/go-codec/codec"
+	"golang.org/x/net/context"
+
+	"github.com/keybase/client/go/protocol/keybase1"
 )
 
-type BoxAuditTeamstore struct {
-	TeamIDs []keybase1.TeamID
+// TeamIDKeys takes a set of DBKeys that must all be tid:-style DBKeys and
+// extracts the team id from them. Because teams can be loaded via both FTL and
+// the slow team loader, we need to use a set so we don't return duplicates.
+func KeySetToTeamIDs(dbKeySet libkb.DBKeySet) ([]keybase1.TeamID, error) {
+	teamIDSet := make(map[keybase1.TeamID]bool)
+	teamIDs := make([]keybase1.TeamID, 0, len(dbKeySet))
+	for dbKey, _ := range dbKeySet {
+		teamID, err := ParseTeamIDKey(dbKey.Key)
+		if err != nil {
+			return nil, nil
+		}
+		_, ok := teamIDSet[teamID]
+		if !ok {
+			teamIDs = append(teamIDs, teamID)
+			teamIDSet[teamID] = true
+		}
+	}
+	return teamIDs, nil
+}
+
+func wrap(x byte) []byte {
+	return []byte{x}
+}
+
+func RandomKnownTeamID(mctx libkb.MetaContext) (teamID keybase1.TeamID, err error) {
+	db := mctx.G().LocalDb
+	if db == nil {
+		return "", fmt.Errorf("nil db")
+	}
+	dbKeySet, err := db.KeysWithPrefixes(wrap(libkb.DBSlowTeamsAlias), wrap(libkb.DBFTLStorage))
+	if err != nil {
+		return "", err
+	}
+	teamIDs, err := KeySetToTeamIDs(dbKeySet)
+	if err != nil {
+		return "", err
+	}
+	idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(teamIDs))))
+	if err != nil {
+		return "", err
+	}
+	return teamIDs[idx.Int64()], nil
 }
 
 // TODO FEATUREFLAG ME?

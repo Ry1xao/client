@@ -131,6 +131,8 @@ type DbKey struct {
 	Key string
 }
 
+type DBKeySet map[DbKey]bool
+
 type LocalDbOps interface {
 	Put(id DbKey, aliases []DbKey, value []byte) error
 	Delete(id DbKey) error
@@ -152,12 +154,14 @@ type LocalDb interface {
 	Close() error
 	Nuke() (string, error)
 	OpenTransaction() (LocalDbTransaction, error)
+	KeysWithPrefixes(prefixes ...[]byte) (DBKeySet, error)
 }
 
 type KVStorer interface {
 	GetInto(obj interface{}, id DbKey) (found bool, err error)
 	PutObj(id DbKey, aliases []DbKey, obj interface{}) (err error)
 	Delete(id DbKey) error
+	KeysWithPrefixes(prefixes ...[]byte) (DBKeySet, error)
 }
 
 type JSONReader interface {
