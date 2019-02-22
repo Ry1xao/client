@@ -125,14 +125,21 @@ func NewBoxAuditID() (BoxAuditID, error) {
 }
 
 type BoxAuditLog struct {
-	Audits  []BoxAudit // sorted by ascending ctime
+	Audits []BoxAudit // last entry is latest
+
+	// TeamIDs who have hit a fatal audit failure or
+	// the max number of retryable audit failures.
+	// Will not be reaudited unless FTL/slow team loader.
+	Blacklist []keybase1.TeamID
+
 	Version BoxAuditVersion
 }
 
 func NewBoxAuditLog() *BoxAuditLog {
 	return &BoxAuditLog{
-		Audits:  nil,
-		Version: CurrentBoxAuditVersion,
+		Audits:    nil,
+		Blacklist: nil,
+		Version:   CurrentBoxAuditVersion,
 	}
 }
 
@@ -243,13 +250,15 @@ func (a *BoxAuditor) BoxAuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID
 		log = NewBoxAuditLog()
 	}
 
-	attempt := a.Attempt(mctx, teamID)
-
 	lastAudit := log.Last()
+	isRetry := lastAudit != nil && lastAudit.InProgress
+
+	attempt := a.Attempt(mctx, teamID, isRetry)
+
 	var id BoxAuditID
-	if lastAudit != nil && lastAudit.InProgress {
+	if isRetry {
 		// If there's already an inprogress Audit (i.e., previous failure and
-		// we're doing a retry), do a new attempt in the same audit
+		// we're doing a retry), rotate and do a new attempt in the same audit
 		id = lastAudit.ID
 		newAudit := BoxAudit{
 			ID:         lastAudit.ID,
@@ -327,11 +336,12 @@ type BoxAuditAttempt struct {
 	ActualSummary *boxPublicSummary
 }
 
-func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID) BoxAuditAttempt {
+func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID, isRetry bool) BoxAuditAttempt {
 	attempt := BoxAuditAttempt{
 		Time: time.Now(),
 	}
 	defer func() {
+		// TODO RM
 		spew.Dump(attempt)
 	}()
 
@@ -350,6 +360,15 @@ func (a *BoxAuditor) Attempt(mctx libkb.MetaContext, teamID keybase1.TeamID) Box
 		attempt.Status = FailureRetryable
 		attempt.Error = fmt.Errorf("got nil team")
 		return attempt
+	}
+
+	if isRetry {
+		err := team.Rotate(mctx.Ctx())
+		if err != nil {
+			attempt.Status = FailureRetryable
+			attempt.Error = fmt.Errorf("failed to rotate team before retrying audit: %s", err)
+			return attempt
+		}
 	}
 
 	g := team.Generation()
