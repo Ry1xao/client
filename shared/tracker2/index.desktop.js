@@ -257,7 +257,12 @@ const styles = Styles.styleSheetCreate({
     position: 'absolute',
     zIndex: 9,
   },
-  nameWithIconContainer: {alignSelf: 'center'},
+  nameWithIconContainer: Styles.platformStyles({
+    common: {alignSelf: 'center'},
+    isElectron: {
+      ...Styles.desktopStyles.windowDraggingClickable,
+    },
+  }),
   reason: {
     ...reason,
     ...Styles.globalStyles.fillAbsolute,
