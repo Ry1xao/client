@@ -31,9 +31,8 @@
       "symbols": [
         "FAILURE_RETRYABLE_0",
         "FAILURE_MALICIOUS_SERVER_1",
-        "FAILURE_RETRY_EXHAUSTED_2",
-        "OK_VERIFIED_3",
-        "OK_NOT_ATTEMPTED_4"
+        "OK_VERIFIED_2",
+        "OK_NOT_ATTEMPTED_3"
       ]
     },
     {

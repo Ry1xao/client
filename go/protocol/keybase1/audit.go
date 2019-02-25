@@ -34,9 +34,8 @@ type BoxAuditAttemptResult int
 const (
 	BoxAuditAttemptResult_FAILURE_RETRYABLE        BoxAuditAttemptResult = 0
 	BoxAuditAttemptResult_FAILURE_MALICIOUS_SERVER BoxAuditAttemptResult = 1
-	BoxAuditAttemptResult_FAILURE_RETRY_EXHAUSTED  BoxAuditAttemptResult = 2
-	BoxAuditAttemptResult_OK_VERIFIED              BoxAuditAttemptResult = 3
-	BoxAuditAttemptResult_OK_NOT_ATTEMPTED         BoxAuditAttemptResult = 4
+	BoxAuditAttemptResult_OK_VERIFIED              BoxAuditAttemptResult = 2
+	BoxAuditAttemptResult_OK_NOT_ATTEMPTED         BoxAuditAttemptResult = 3
 )
 
 func (o BoxAuditAttemptResult) DeepCopy() BoxAuditAttemptResult { return o }
@@ -44,17 +43,15 @@ func (o BoxAuditAttemptResult) DeepCopy() BoxAuditAttemptResult { return o }
 var BoxAuditAttemptResultMap = map[string]BoxAuditAttemptResult{
 	"FAILURE_RETRYABLE":        0,
 	"FAILURE_MALICIOUS_SERVER": 1,
-	"FAILURE_RETRY_EXHAUSTED":  2,
-	"OK_VERIFIED":              3,
-	"OK_NOT_ATTEMPTED":         4,
+	"OK_VERIFIED":              2,
+	"OK_NOT_ATTEMPTED":         3,
 }
 
 var BoxAuditAttemptResultRevMap = map[BoxAuditAttemptResult]string{
 	0: "FAILURE_RETRYABLE",
 	1: "FAILURE_MALICIOUS_SERVER",
-	2: "FAILURE_RETRY_EXHAUSTED",
-	3: "OK_VERIFIED",
-	4: "OK_NOT_ATTEMPTED",
+	2: "OK_VERIFIED",
+	3: "OK_NOT_ATTEMPTED",
 }
 
 func (e BoxAuditAttemptResult) String() string {

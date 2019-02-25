@@ -2674,12 +2674,3 @@ func (h BoxSummaryHash) String() string {
 func (r BoxAuditAttemptResult) IsOK() bool {
 	return r == BoxAuditAttemptResult_OK_VERIFIED || r == BoxAuditAttemptResult_OK_NOT_ATTEMPTED
 }
-
-func (r BoxAuditAttemptResult) IsFatal() bool {
-	// should use enum... could forget to add
-	return r == BoxAuditAttemptResult_FAILURE_MALICIOUS_SERVER || r == BoxAuditAttemptResult_FAILURE_RETRY_EXHAUSTED
-}
-
-func (r BoxAuditAttemptResult) IsRetryableError() bool {
-	return !r.IsOK() && !r.IsFatal()
-}

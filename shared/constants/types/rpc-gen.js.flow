@@ -1036,9 +1036,8 @@ export const appStateAppState = {
 export const auditBoxAuditAttemptResult = {
   failureRetryable: 0,
   failureMaliciousServer: 1,
-  failureRetryExhausted: 2,
-  okVerified: 3,
-  okNotAttempted: 4,
+  okVerified: 2,
+  okNotAttempted: 3,
 }
 
 export const backendCommonBlockType = {
@@ -1964,9 +1963,8 @@ export type BoxAuditAttempt = $ReadOnly<{ctime: UnixTime, error?: ?String, resul
 export type BoxAuditAttemptResult =
   | 0 // FAILURE_RETRYABLE_0
   | 1 // FAILURE_MALICIOUS_SERVER_1
-  | 2 // FAILURE_RETRY_EXHAUSTED_2
-  | 3 // OK_VERIFIED_3
-  | 4 // OK_NOT_ATTEMPTED_4
+  | 2 // OK_VERIFIED_2
+  | 3 // OK_NOT_ATTEMPTED_3
 
 export type BoxNonce = ?string
 export type BoxPublicKey = ?string

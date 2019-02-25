@@ -16,9 +16,8 @@ export const appStateAppState = {
 export const auditBoxAuditAttemptResult = {
   failureRetryable: 0,
   failureMaliciousServer: 1,
-  failureRetryExhausted: 2,
-  okVerified: 3,
-  okNotAttempted: 4,
+  okVerified: 2,
+  okNotAttempted: 3,
 }
 
 export const backendCommonBlockType = {
