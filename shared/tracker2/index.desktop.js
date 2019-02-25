@@ -30,9 +30,11 @@ type Props = {|
   username: string,
 |}
 
+const NoDragButton = props => <Kb.WaitingButton {...props} style={styles.button} />
+
 const getButtons = (props: Props) => {
   const buttonClose = (
-    <Kb.WaitingButton
+    <NoDragButton
       type="Secondary"
       key="Close"
       label="Close"
@@ -41,7 +43,7 @@ const getButtons = (props: Props) => {
     />
   )
   const buttonAccept = (
-    <Kb.WaitingButton
+    <NoDragButton
       type="PrimaryGreen"
       key="Accept"
       label="Accept"
@@ -50,7 +52,7 @@ const getButtons = (props: Props) => {
     />
   )
   const buttonChat = (
-    <Kb.WaitingButton
+    <NoDragButton
       type="Primary"
       key="Chat"
       label="Chat"
@@ -58,7 +60,7 @@ const getButtons = (props: Props) => {
       onClick={props.onChat}
     >
       <Kb.Icon type="iconfont-chat" color={Styles.globalColors.white} style={styles.chatIcon} />
-    </Kb.WaitingButton>
+    </NoDragButton>
   )
 
   if (props.isYou) {
@@ -73,7 +75,7 @@ const getButtons = (props: Props) => {
         ? [buttonClose, buttonChat]
         : [
             buttonChat,
-            <Kb.WaitingButton
+            <NoDragButton
               type="PrimaryGreen"
               key="Follow"
               label="Follow"
@@ -83,7 +85,7 @@ const getButtons = (props: Props) => {
           ]
     case 'broken':
       return [
-        <Kb.WaitingButton
+        <NoDragButton
           type="Secondary"
           key="Ignore for 24 hours"
           label="Ignore for 24 hours"
@@ -96,7 +98,7 @@ const getButtons = (props: Props) => {
       return [buttonChat, buttonAccept]
     case 'error':
       return [
-        <Kb.WaitingButton
+        <NoDragButton
           type="Primary"
           key="Reload"
           label="Reload"
@@ -218,6 +220,11 @@ const styles = Styles.styleSheetCreate({
     top: avatarSize / 2,
   },
   avatarContainer: {flexShrink: 0, position: 'relative'},
+  button: Styles.platformStyles({
+    isElectron: {
+      ...Styles.desktopStyles.windowDraggingClickable,
+    },
+  }),
   buttons: Styles.platformStyles({
     common: {
       ...Styles.globalStyles.fillAbsolute,
