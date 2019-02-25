@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+
 	"github.com/keybase/client/go/protocol/keybase1"
 	"github.com/keybase/go-codec/codec"
 )
@@ -62,4 +63,10 @@ func (b boxPublicSummary) EncodeToString() string {
 
 func (b boxPublicSummary) IsEmpty() bool {
 	return len(b.table) == 0
+}
+
+func (b boxPublicSummary) Export() *keybase1.BoxPublicSummary {
+	return &keybase1.BoxPublicSummary{
+		Table: b.table,
+	}
 }

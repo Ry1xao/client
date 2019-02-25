@@ -29,6 +29,10 @@ type levelDBOps interface {
 	Write(b *leveldb.Batch, wo *opt.WriteOptions) error
 }
 
+func LevelDbPrefix(typ ObjType) []byte {
+	return []byte(PrefixString(levelDbTableKv, typ))
+}
+
 func levelDbPut(ops levelDBOps, id DbKey, aliases []DbKey, value []byte) (err error) {
 	defer convertNoSpaceError(err)
 
@@ -334,15 +338,18 @@ func (l *LevelDb) KeysWithPrefixes(prefixes ...[]byte) (DBKeySet, error) {
 	// TODO need to lock?
 	opts := &opt.ReadOptions{DontFillCache: true}
 	for _, prefix := range prefixes {
+		fmt.Println("ITER PREFIX", prefix)
+		fmt.Println("%+v", l)
 		iter := l.db.NewIterator(util.BytesPrefix(prefix), opts)
 		for iter.Next() {
+			fmt.Printf("%s\n", iter.Key())
 			_, dbKey, err := DbKeyParse(string(iter.Key()))
 			if err != nil {
 				return m, err
 			}
 			m[dbKey] = true
 		}
-		// TODO need to defer Release?
+		// TODO need to defer Release due to quick return?
 		iter.Release()
 		err := iter.Error()
 		if err != nil {

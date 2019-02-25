@@ -7,15 +7,26 @@ protocol audit {
         map<UID, Seqno> table;
     }
 
+    enum BoxAuditAttemptResult {
+        FAILURE_RETRYABLE_0,
+        FAILURE_MALICIOUS_SERVER_1,
+        FAILURE_RETRY_EXHAUSTED_2,
+        OK_VERIFIED_3,
+        OK_NOT_ATTEMPTED_4
+    }
+
     record BoxAuditAttempt {
         UnixTime ctime;
         union { null, string } error;
+        BoxAuditAttemptResult result;
         union { null, PerTeamKeyGeneration } generation;
-        union { null, BoxPublicSummary } expectedSummary;
 
-        // only non-nil if different from expectedSummary
-        union { null, BoxPublicSummary } actualSummary;
+        // we do not include the expected or actual summaries
     }
 
+    void boxAuditTeam(int sessionID, TeamID teamID);
     BoxAuditAttempt attemptBoxAudit(int sessionID, TeamID teamID, boolean rotateBeforeAudit);
+
+    array<TeamID> knownTeamIDs(int sessionID);
+    union { null, TeamID } randomKnownTeamID(int sessionID);
 }

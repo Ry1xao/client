@@ -14,8 +14,12 @@ import (
 	jsonw "github.com/keybase/go-jsonw"
 )
 
+func PrefixString(table string, typ ObjType) string {
+	return fmt.Sprintf("%s:%02x", table, typ)
+}
+
 func (k DbKey) ToString(table string) string {
-	return fmt.Sprintf("%s:%02x:%s", table, k.Typ, k.Key)
+	return fmt.Sprintf("%s:%s", PrefixString(table, k.Typ), k.Key)
 }
 
 func (k DbKey) ToBytes(table string) []byte {
@@ -25,7 +29,7 @@ func (k DbKey) ToBytes(table string) []byte {
 var fieldExp = regexp.MustCompile(`[a-f0-9]{2}`)
 
 func DbKeyParse(s string) (string, DbKey, error) {
-	v := strings.Split(s, ":")
+	v := strings.SplitN(s, ":", 3)
 	if len(v) != 3 {
 		return "", DbKey{}, fmt.Errorf("expected 3 colon-separated fields")
 	}
@@ -180,6 +184,7 @@ const (
 	DBTeamChain         = 0x10
 	DBUserPlusAllKeysV1 = 0x19
 
+	DBBoxAuditorPermanent      = 0xbd
 	DBBoxAuditor               = 0xbe
 	DBChatCollapses            = 0xbf
 	DBMerkleAudit              = 0xca

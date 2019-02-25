@@ -98,3 +98,9 @@ TO DO limit size of log
 What happens if the db is corrupted/ force killed or something
 Also do we need to lock any of this stuff since bg process?
 Probably.
+featureflag?
+
+DO DISABLE...
+
+Maybe ServerMal functions have a special suffix
+or opposite

@@ -102,6 +102,7 @@ type configGetter interface {
 	GetAttachmentDisableMulti() (bool, bool)
 	GetChatOutboxStorageEngine() string
 	GetDisableTeamAuditor() (bool, bool)
+	GetDisableTeamBoxAuditor() (bool, bool)
 	GetDisableMerkleAuditor() (bool, bool)
 	GetDisableSearchIndexer() (bool, bool)
 	GetDisableBgConvLoader() (bool, bool)
@@ -693,7 +694,7 @@ type TeamAuditor interface {
 
 type TeamBoxAuditor interface {
 	BoxAuditTeam(m MetaContext, id keybase1.TeamID) (err error)
-	Attempt(m MetaContext, id keybase1.TeamID, rotateBeforeAudit bool) (keybase1.BoxAuditAttempt, error)
+	Attempt(m MetaContext, id keybase1.TeamID, rotateBeforeAudit bool) keybase1.BoxAuditAttempt
 	// TODO actually register this
 	OnLogout(m MetaContext)
 }

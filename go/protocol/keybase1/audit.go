@@ -29,12 +29,46 @@ func (o BoxPublicSummary) DeepCopy() BoxPublicSummary {
 	}
 }
 
+type BoxAuditAttemptResult int
+
+const (
+	BoxAuditAttemptResult_FAILURE_RETRYABLE        BoxAuditAttemptResult = 0
+	BoxAuditAttemptResult_FAILURE_MALICIOUS_SERVER BoxAuditAttemptResult = 1
+	BoxAuditAttemptResult_FAILURE_RETRY_EXHAUSTED  BoxAuditAttemptResult = 2
+	BoxAuditAttemptResult_OK_VERIFIED              BoxAuditAttemptResult = 3
+	BoxAuditAttemptResult_OK_NOT_ATTEMPTED         BoxAuditAttemptResult = 4
+)
+
+func (o BoxAuditAttemptResult) DeepCopy() BoxAuditAttemptResult { return o }
+
+var BoxAuditAttemptResultMap = map[string]BoxAuditAttemptResult{
+	"FAILURE_RETRYABLE":        0,
+	"FAILURE_MALICIOUS_SERVER": 1,
+	"FAILURE_RETRY_EXHAUSTED":  2,
+	"OK_VERIFIED":              3,
+	"OK_NOT_ATTEMPTED":         4,
+}
+
+var BoxAuditAttemptResultRevMap = map[BoxAuditAttemptResult]string{
+	0: "FAILURE_RETRYABLE",
+	1: "FAILURE_MALICIOUS_SERVER",
+	2: "FAILURE_RETRY_EXHAUSTED",
+	3: "OK_VERIFIED",
+	4: "OK_NOT_ATTEMPTED",
+}
+
+func (e BoxAuditAttemptResult) String() string {
+	if v, ok := BoxAuditAttemptResultRevMap[e]; ok {
+		return v
+	}
+	return ""
+}
+
 type BoxAuditAttempt struct {
-	Ctime           UnixTime              `codec:"ctime" json:"ctime"`
-	Error           *string               `codec:"error,omitempty" json:"error,omitempty"`
-	Generation      *PerTeamKeyGeneration `codec:"generation,omitempty" json:"generation,omitempty"`
-	ExpectedSummary *BoxPublicSummary     `codec:"expectedSummary,omitempty" json:"expectedSummary,omitempty"`
-	ActualSummary   *BoxPublicSummary     `codec:"actualSummary,omitempty" json:"actualSummary,omitempty"`
+	Ctime      UnixTime              `codec:"ctime" json:"ctime"`
+	Error      *string               `codec:"error,omitempty" json:"error,omitempty"`
+	Result     BoxAuditAttemptResult `codec:"result" json:"result"`
+	Generation *PerTeamKeyGeneration `codec:"generation,omitempty" json:"generation,omitempty"`
 }
 
 func (o BoxAuditAttempt) DeepCopy() BoxAuditAttempt {
@@ -47,6 +81,7 @@ func (o BoxAuditAttempt) DeepCopy() BoxAuditAttempt {
 			tmp := (*x)
 			return &tmp
 		})(o.Error),
+		Result: o.Result.DeepCopy(),
 		Generation: (func(x *PerTeamKeyGeneration) *PerTeamKeyGeneration {
 			if x == nil {
 				return nil
@@ -54,21 +89,12 @@ func (o BoxAuditAttempt) DeepCopy() BoxAuditAttempt {
 			tmp := (*x).DeepCopy()
 			return &tmp
 		})(o.Generation),
-		ExpectedSummary: (func(x *BoxPublicSummary) *BoxPublicSummary {
-			if x == nil {
-				return nil
-			}
-			tmp := (*x).DeepCopy()
-			return &tmp
-		})(o.ExpectedSummary),
-		ActualSummary: (func(x *BoxPublicSummary) *BoxPublicSummary {
-			if x == nil {
-				return nil
-			}
-			tmp := (*x).DeepCopy()
-			return &tmp
-		})(o.ActualSummary),
 	}
+}
+
+type BoxAuditTeamArg struct {
+	SessionID int    `codec:"sessionID" json:"sessionID"`
+	TeamID    TeamID `codec:"teamID" json:"teamID"`
 }
 
 type AttemptBoxAuditArg struct {
@@ -77,14 +103,40 @@ type AttemptBoxAuditArg struct {
 	RotateBeforeAudit bool   `codec:"rotateBeforeAudit" json:"rotateBeforeAudit"`
 }
 
+type KnownTeamIDsArg struct {
+	SessionID int `codec:"sessionID" json:"sessionID"`
+}
+
+type RandomKnownTeamIDArg struct {
+	SessionID int `codec:"sessionID" json:"sessionID"`
+}
+
 type AuditInterface interface {
+	BoxAuditTeam(context.Context, BoxAuditTeamArg) error
 	AttemptBoxAudit(context.Context, AttemptBoxAuditArg) (BoxAuditAttempt, error)
+	KnownTeamIDs(context.Context, int) ([]TeamID, error)
+	RandomKnownTeamID(context.Context, int) (*TeamID, error)
 }
 
 func AuditProtocol(i AuditInterface) rpc.Protocol {
 	return rpc.Protocol{
 		Name: "keybase.1.audit",
 		Methods: map[string]rpc.ServeHandlerDescription{
+			"boxAuditTeam": {
+				MakeArg: func() interface{} {
+					var ret [1]BoxAuditTeamArg
+					return &ret
+				},
+				Handler: func(ctx context.Context, args interface{}) (ret interface{}, err error) {
+					typedArgs, ok := args.(*[1]BoxAuditTeamArg)
+					if !ok {
+						err = rpc.NewTypeError((*[1]BoxAuditTeamArg)(nil), args)
+						return
+					}
+					err = i.BoxAuditTeam(ctx, typedArgs[0])
+					return
+				},
+			},
 			"attemptBoxAudit": {
 				MakeArg: func() interface{} {
 					var ret [1]AttemptBoxAuditArg
@@ -100,6 +152,36 @@ func AuditProtocol(i AuditInterface) rpc.Protocol {
 					return
 				},
 			},
+			"knownTeamIDs": {
+				MakeArg: func() interface{} {
+					var ret [1]KnownTeamIDsArg
+					return &ret
+				},
+				Handler: func(ctx context.Context, args interface{}) (ret interface{}, err error) {
+					typedArgs, ok := args.(*[1]KnownTeamIDsArg)
+					if !ok {
+						err = rpc.NewTypeError((*[1]KnownTeamIDsArg)(nil), args)
+						return
+					}
+					ret, err = i.KnownTeamIDs(ctx, typedArgs[0].SessionID)
+					return
+				},
+			},
+			"randomKnownTeamID": {
+				MakeArg: func() interface{} {
+					var ret [1]RandomKnownTeamIDArg
+					return &ret
+				},
+				Handler: func(ctx context.Context, args interface{}) (ret interface{}, err error) {
+					typedArgs, ok := args.(*[1]RandomKnownTeamIDArg)
+					if !ok {
+						err = rpc.NewTypeError((*[1]RandomKnownTeamIDArg)(nil), args)
+						return
+					}
+					ret, err = i.RandomKnownTeamID(ctx, typedArgs[0].SessionID)
+					return
+				},
+			},
 		},
 	}
 }
@@ -108,7 +190,24 @@ type AuditClient struct {
 	Cli rpc.GenericClient
 }
 
+func (c AuditClient) BoxAuditTeam(ctx context.Context, __arg BoxAuditTeamArg) (err error) {
+	err = c.Cli.Call(ctx, "keybase.1.audit.boxAuditTeam", []interface{}{__arg}, nil)
+	return
+}
+
 func (c AuditClient) AttemptBoxAudit(ctx context.Context, __arg AttemptBoxAuditArg) (res BoxAuditAttempt, err error) {
 	err = c.Cli.Call(ctx, "keybase.1.audit.attemptBoxAudit", []interface{}{__arg}, &res)
+	return
+}
+
+func (c AuditClient) KnownTeamIDs(ctx context.Context, sessionID int) (res []TeamID, err error) {
+	__arg := KnownTeamIDsArg{SessionID: sessionID}
+	err = c.Cli.Call(ctx, "keybase.1.audit.knownTeamIDs", []interface{}{__arg}, &res)
+	return
+}
+
+func (c AuditClient) RandomKnownTeamID(ctx context.Context, sessionID int) (res *TeamID, err error) {
+	__arg := RandomKnownTeamIDArg{SessionID: sessionID}
+	err = c.Cli.Call(ctx, "keybase.1.audit.randomKnownTeamID", []interface{}{__arg}, &res)
 	return
 }

@@ -116,6 +116,7 @@ func (n NullConfiguration) GetDisableTeamAuditor() (bool, bool)             { re
 func (n NullConfiguration) GetDisableMerkleAuditor() (bool, bool)           { return false, false }
 func (n NullConfiguration) GetDisableSearchIndexer() (bool, bool)           { return false, false }
 func (n NullConfiguration) GetDisableBgConvLoader() (bool, bool)            { return false, false }
+func (n NullConfiguration) GetDisableTeamBoxAuditor() (bool, bool)          { return false, false }
 func (n NullConfiguration) GetEnableBotLiteMode() (bool, bool)              { return false, false }
 func (n NullConfiguration) GetChatOutboxStorageEngine() string              { return "" }
 func (n NullConfiguration) GetBug3964RepairTime(NormalizedUsername) (time.Time, error) {
@@ -899,6 +900,16 @@ func (e *Env) GetDisableTeamAuditor() bool {
 		e.cmd.GetDisableTeamAuditor,
 		func() (bool, bool) { return e.getEnvBool("KEYBASE_DISABLE_TEAM_AUDITOR") },
 		e.GetConfig().GetDisableTeamAuditor,
+		// If unset, use the BotLite setting
+		func() (bool, bool) { return e.GetEnableBotLiteMode(), true },
+	)
+}
+
+func (e *Env) GetDisableTeamBoxAuditor() bool {
+	return e.GetBool(false,
+		e.cmd.GetDisableTeamBoxAuditor,
+		func() (bool, bool) { return e.getEnvBool("KEYBASE_DISABLE_TEAM_BOX_AUDITOR") },
+		e.GetConfig().GetDisableTeamBoxAuditor,
 		// If unset, use the BotLite setting
 		func() (bool, bool) { return e.GetEnableBotLiteMode(), true },
 	)

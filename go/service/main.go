@@ -157,6 +157,7 @@ func (d *Service) RegisterProtocols(srv *rpc.Server, xp rpc.Transporter, connID 
 		keybase1.PhoneNumbersProtocol(NewPhoneNumbersHandler(xp, g)),
 		keybase1.EmailsProtocol(NewEmailsHandler(xp, g)),
 		keybase1.Identify3Protocol(newIdentify3Handler(xp, g)),
+		keybase1.AuditProtocol(NewAuditHandler(xp, g)),
 	}
 	walletHandler := newWalletHandler(xp, g, d.walletState)
 	protocols = append(protocols, CancelingProtocol(g, stellar1.LocalProtocol(walletHandler),
@@ -330,7 +331,6 @@ func (d *Service) setupEphemeralKeys() error {
 }
 
 func (d *Service) setupTeams() error {
-	d.G().Log.Warning("@@@setupTeams")
 	teams.ServiceInit(d.G())
 	return nil
 }

@@ -293,6 +293,7 @@ func ParseTeamIDKey(s string) (teamID keybase1.TeamID, err error) {
 	if !strings.HasPrefix(s, "tid:") {
 		return "", fmt.Errorf("does not start with team id prefix")
 	}
+	s = strings.TrimPrefix(s, "tid:")
 	s = strings.TrimSuffix(s, "|pub")
 	return keybase1.TeamID(s), nil
 }

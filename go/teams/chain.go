@@ -1276,13 +1276,14 @@ func (t *teamSigchainPlayer) addInnerLink(
 		isHighLink = true
 
 		err = enforce(LinkRules{
-			Name:         TristateRequire,
-			Members:      TristateRequire,
-			Parent:       TristateRequire,
-			PerTeamKey:   TristateRequire,
-			Admin:        TristateOptional,
-			Settings:     TristateOptional,
-			FirstInChain: true,
+			Name:           TristateRequire,
+			Members:        TristateRequire,
+			Parent:         TristateRequire,
+			PerTeamKey:     TristateRequire,
+			Admin:          TristateOptional,
+			Settings:       TristateOptional,
+			BoxSummaryHash: TristateRequire,
+			FirstInChain:   true,
 		})
 		if err != nil {
 			return res, err
@@ -1343,17 +1344,18 @@ func (t *teamSigchainPlayer) addInnerLink(
 					LastPart: teamName.LastPart(),
 					Seqno:    1,
 				}},
-				LastSeqno:       1,
-				LastLinkID:      link.LinkID().Export(),
-				ParentID:        &parentID,
-				UserLog:         make(map[keybase1.UserVersion][]keybase1.UserLogPoint),
-				SubteamLog:      make(map[keybase1.TeamID][]keybase1.SubteamLogPoint),
-				PerTeamKeys:     perTeamKeys,
-				PerTeamKeyCTime: keybase1.UnixTime(payload.Ctime),
-				LinkIDs:         make(map[keybase1.Seqno]keybase1.LinkID),
-				StubbedLinks:    make(map[keybase1.Seqno]bool),
-				ActiveInvites:   make(map[keybase1.TeamInviteID]keybase1.TeamInvite),
-				ObsoleteInvites: make(map[keybase1.TeamInviteID]keybase1.TeamInvite),
+				LastSeqno:        1,
+				LastLinkID:       link.LinkID().Export(),
+				ParentID:         &parentID,
+				UserLog:          make(map[keybase1.UserVersion][]keybase1.UserLogPoint),
+				SubteamLog:       make(map[keybase1.TeamID][]keybase1.SubteamLogPoint),
+				PerTeamKeys:      perTeamKeys,
+				PerTeamKeyCTime:  keybase1.UnixTime(payload.Ctime),
+				LinkIDs:          make(map[keybase1.Seqno]keybase1.LinkID),
+				StubbedLinks:     make(map[keybase1.Seqno]bool),
+				ActiveInvites:    make(map[keybase1.TeamInviteID]keybase1.TeamInvite),
+				ObsoleteInvites:  make(map[keybase1.TeamInviteID]keybase1.TeamInvite),
+				BoxSummaryHashes: make(map[keybase1.PerTeamKeyGeneration][]keybase1.BoxSummaryHash),
 			}}
 
 		t.updateMembership(&res.newState, roleUpdates, payload.SignatureMetadata())

@@ -8,10 +8,12 @@ package client
 import (
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/keybase/cli"
 	"github.com/keybase/client/go/libcmdline"
 	"github.com/keybase/client/go/libkb"
 	"github.com/keybase/client/go/protocol/keybase1"
+	"golang.org/x/net/context"
 )
 
 const backtick = "`"
@@ -32,6 +34,9 @@ func NewCmdAudit(cl *libcmdline.CommandLine, g *libkb.GlobalContext) cli.Command
 type CmdAuditBox struct {
 	libkb.Contextified
 	TeamID keybase1.TeamID
+	Full   bool
+	Ls     bool
+	Rng    bool
 }
 
 func NewCmdAuditBox(cl *libcmdline.CommandLine, g *libkb.GlobalContext) cli.Command {
@@ -49,6 +54,18 @@ func NewCmdAuditBox(cl *libcmdline.CommandLine, g *libkb.GlobalContext) cli.Comm
 				Name:  "team-id",
 				Usage: "Team ID",
 			},
+			cli.BoolFlag{
+				Name:  "full",
+				Usage: "Do a full box audit with stored state.",
+			},
+			cli.BoolFlag{
+				Name:  "ls", // TODO RM
+				Usage: "ls",
+			},
+			cli.BoolFlag{
+				Name:  "rng", // TODO RM
+				Usage: "rng",
+			},
 		},
 		ArgumentHelp: "",
 		Action: func(c *cli.Context) {
@@ -58,22 +75,60 @@ func NewCmdAuditBox(cl *libcmdline.CommandLine, g *libkb.GlobalContext) cli.Comm
 }
 
 func (c *CmdAuditBox) ParseArgv(ctx *cli.Context) error {
+	c.Ls = ctx.Bool("ls")
+	c.Rng = ctx.Bool("rng")
+	if c.Ls || c.Rng {
+		return nil
+	}
+
 	c.TeamID = keybase1.TeamID(ctx.String("team-id"))
+	if len(c.TeamID) == 0 {
+		return fmt.Errorf("need non-empty team id")
+	}
+	c.Full = ctx.Bool("full")
 	return nil
 }
 
 func (c *CmdAuditBox) Run() error {
-	fmt.Println("Naw")
 	boxAuditor := c.G().GetTeamBoxAuditor()
-	fmt.Println("Khoa")
-	fmt.Println("@@@%#v", boxAuditor)
-
 	if boxAuditor == nil {
 		return fmt.Errorf("Nil team box auditor. Are you running in standalone mode?")
 	}
 
-	err := boxAuditor.BoxAuditTeam(libkb.NewMetaContextTODO(c.G()), c.TeamID)
-	return err
+	cli, err := GetAuditClient(c.G())
+	if err != nil {
+		return err
+	}
+
+	if c.Ls {
+		r, err := cli.KnownTeamIDs(context.Background(), 0)
+		spew.Dump(r)
+		return err
+	} else if c.Rng {
+		r, err := cli.RandomKnownTeamID(context.Background(), 0)
+		spew.Dump(r)
+		return err
+	}
+
+	if c.Full {
+		fmt.Println("FULL")
+		err := cli.BoxAuditTeam(context.Background(), keybase1.BoxAuditTeamArg{
+			TeamID: keybase1.TeamID(c.TeamID),
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		fmt.Println("HALF")
+		audit, err := cli.AttemptBoxAudit(context.Background(), keybase1.AttemptBoxAuditArg{
+			TeamID: keybase1.TeamID(c.TeamID),
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%+v\n", audit)
+	}
+	return nil
 }
 
 func (c *CmdAuditBox) GetUsage() libkb.Usage {

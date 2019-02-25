@@ -13,6 +13,14 @@ export const appStateAppState = {
   backgroundactive: 3,
 }
 
+export const auditBoxAuditAttemptResult = {
+  failureRetryable: 0,
+  failureMaliciousServer: 1,
+  failureRetryExhausted: 2,
+  okVerified: 3,
+  okNotAttempted: 4,
+}
+
 export const backendCommonBlockType = {
   data: 0,
   md: 1,
