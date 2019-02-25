@@ -1,3 +1,7 @@
+TODO _ HANDLE JAIL
+If you get a top level error in BG task, DONT throw a black bar (could have dc'd forever, left team, or whatever)
+BUT If you try to load a team in JAIL, and we couldnt REAUDIT, THROW A BLACK BAR
+
 // Rotate before each attempt?
 BoxAudit {
     // No notion of when to retry, bBoxAuditRetrier does this case by case

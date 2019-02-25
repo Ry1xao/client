@@ -368,6 +368,8 @@ func (d *Service) RunBackgroundOperations(uir *UIRouter) {
 	d.runBackgroundPerUserKeyUpgrade()
 	d.runBackgroundPerUserKeyUpkeep()
 	d.runBackgroundWalletUpkeep()
+	d.runBackgroundBoxAuditRetry()
+	d.runBackgroundBoxAuditScheduler()
 	d.runTLFUpgrade()
 	d.runTeamUpgrader(ctx)
 	d.runHomePoller(ctx)
@@ -858,6 +860,40 @@ func (d *Service) runBackgroundWalletUpkeep() {
 
 	d.G().PushShutdownHook(func() error {
 		d.G().Log.Debug("stopping background WalletUpkeep")
+		eng.Shutdown()
+		return nil
+	})
+}
+
+func (d *Service) runBackgroundBoxAuditRetry() {
+	eng := engine.NewBoxAuditRetryBackground(d.G())
+	go func() {
+		m := libkb.NewMetaContextBackground(d.G())
+		err := engine.RunEngine2(m, eng)
+		if err != nil {
+			m.CWarningf("background BoxAuditorRetry error: %v", err)
+		}
+	}()
+
+	d.G().PushShutdownHook(func() error {
+		d.G().Log.Debug("stopping background BoxAuditorRetry")
+		eng.Shutdown()
+		return nil
+	})
+}
+
+func (d *Service) runBackgroundBoxAuditScheduler() {
+	eng := engine.NewBoxAuditSchedulerBackground(d.G())
+	go func() {
+		m := libkb.NewMetaContextBackground(d.G())
+		err := engine.RunEngine2(m, eng)
+		if err != nil {
+			m.CWarningf("background BoxAuditorScheduler error: %v", err)
+		}
+	}()
+
+	d.G().PushShutdownHook(func() error {
+		d.G().Log.Debug("stopping background BoxAuditorScheduler")
 		eng.Shutdown()
 		return nil
 	})

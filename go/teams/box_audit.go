@@ -83,6 +83,8 @@ type BoxAuditor struct {
 	Version     Version
 }
 
+var _ libkb.TeamBoxAuditor = &BoxAuditor{}
+
 func (a *BoxAuditor) OnLogout(mctx libkb.MetaContext) {
 	return
 }
@@ -118,8 +120,8 @@ func (l BoxAuditLog) GetVersion() Version {
 func BoxAuditLogDbKey(teamID keybase1.TeamID) libkb.DbKey {
 	return libkb.DbKey{Typ: libkb.DBBoxAuditor, Key: string(teamID)}
 }
-
 func NewBoxAuditLog(version Version) *BoxAuditLog {
+
 	return &BoxAuditLog{
 		Audits:     nil,
 		InProgress: false,
@@ -323,11 +325,40 @@ func (e FatalBoxAuditError) Error() string {
 
 const MaxRetryAttempts = 6
 
-// Performs one attempt of a BoxAudit. If one is in progress for the teamid,
-// make a new attempt. If exceeded max tries or hit a malicious error, return a fatal error.
-// Otherwise, make a new audit and fill it with one attempt. Return an error if it's fatal only.
-// If the attempt failed nonfatally, enqueue it in the retry queue. If it failed fatally,
-// add it to the jail.
+// RetryNextBoxAudit selects a teamID from the box audit retry queue and performs another box audit.
+func (a *BoxAuditor) RetryNextBoxAudit(mctx libkb.MetaContext) error {
+	queueItem, err := a.popRetryQueue(mctx)
+	if err != nil {
+		return err
+	}
+	// Empty retry queue
+	if queueItem == nil {
+		return nil
+	}
+	return a.BoxAuditTeam(mctx, (*queueItem).TeamID)
+}
+
+// BoxAuditRandomTeam selects a random known team from the cache, including
+// implicit teams, and audits it. It may succeed trivially because, for example, user is a reader
+// and so does not have permissions to do a box audit (keybase1.BoxAuditAttemptResult_OK_NOT_ATTEMPTED)
+func (a *BoxAuditor) BoxAuditRandomTeam(mctx libkb.MetaContext) error {
+	teamID, err := RandomKnownTeamID(mctx)
+	if err != nil {
+		return err
+	}
+	// No known teams to audit
+	if teamID == nil {
+		return nil
+	}
+	return a.BoxAuditTeam(mctx, *teamID)
+}
+
+// BoxAuditTeam performs one attempt of a BoxAudit. If one is in progress for
+// the teamid, make a new attempt. If exceeded max tries or hit a malicious
+// error, return a fatal error.  Otherwise, make a new audit and fill it with
+// one attempt. Return an error if it's fatal only.  If the attempt failed
+// nonfatally, enqueue it in the retry queue. If it failed fatally, add it to
+// the jail.
 func (a *BoxAuditor) BoxAuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID) error {
 	a.Lock()
 	// TODO when do we have to unlock db?
@@ -401,6 +432,19 @@ func (a *BoxAuditor) BoxAuditTeam(mctx libkb.MetaContext, teamID keybase1.TeamID
 		return NonfatalBoxAuditError{err}
 	}
 	return nil
+}
+
+func (a *BoxAuditor) IsInJail(mctx libkb.MetaContext, teamID keybase1.TeamID) (bool, error) {
+	var jail BoxAuditJail
+	found, err := maybeGetVersionedFromDisk(mctx, BoxAuditJailDbKey(), &jail, a.Version)
+	if err != nil {
+		return false, err
+	}
+	if !found {
+		return false, nil
+	}
+	_, ok := jail.TeamIDs[teamID]
+	return ok, nil
 }
 
 func (a *BoxAuditor) jail(mctx libkb.MetaContext, teamID keybase1.TeamID) error {

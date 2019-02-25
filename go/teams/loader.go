@@ -308,6 +308,18 @@ func (l *TeamLoader) load1(ctx context.Context, me keybase1.UserVersion, lArg ke
 		}
 	}
 
+	// Make sure team is not in audit jail
+	// TODO put in interfaces
+	// TODO put in ftl
+	// TODO if still doesn't work, send to frontend with blackbar.
+	// TODO make sure it still works if we're in jail. we need
+	// some logic that filters jailed bros out of the random selection BUT
+	// still allows it when manually auditing
+	if l.G().GetTeamBoxAuditor().IsInJail(teamID) {
+		// NEED TO RETRY RN! With a rotate!
+		return nil, fmt.Errorf("")
+	}
+
 	return &ret.team, nil
 }
 

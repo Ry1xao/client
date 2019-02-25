@@ -117,8 +117,14 @@ type nullTeamBoxAuditor struct{}
 
 var _ TeamBoxAuditor = nullTeamBoxAuditor{}
 
-func (n nullTeamBoxAuditor) BoxAuditTeam(m MetaContext, id keybase1.TeamID) (err error) {
+func (n nullTeamBoxAuditor) RetryNextBoxAudit(m MetaContext) (err error) {
+	return n.BoxAuditRandomTeam(m)
+}
+func (n nullTeamBoxAuditor) BoxAuditRandomTeam(m MetaContext) (err error) {
 	return fmt.Errorf("No team box auditor found. Are you running in standalone mode?")
+}
+func (n nullTeamBoxAuditor) BoxAuditTeam(m MetaContext, id keybase1.TeamID) (err error) {
+	return n.BoxAuditRandomTeam(m)
 }
 func (n nullTeamBoxAuditor) Attempt(m MetaContext, id keybase1.TeamID, rotateBeforeAudit bool) keybase1.BoxAuditAttempt {
 	msg := fmt.Sprintf("No team box auditor found. Are you running in standalone mode?")
