@@ -74,7 +74,12 @@ const Bio = (p: Props) => (
 
 const styles = Styles.styleSheetCreate({
   bold: {...Styles.globalStyles.fontBold},
-  container: {backgroundColor: Styles.globalColors.white, flexShrink: 0},
+  container: Styles.platformStyles({
+    common: {backgroundColor: Styles.globalColors.white, flexShrink: 0},
+    isElectron: {
+      ...Styles.desktopStyles.windowDraggingClickable,
+    },
+  }),
   fullName: Styles.platformStyles({
     isElectron: {wordBreak: 'break-any'},
   }),
