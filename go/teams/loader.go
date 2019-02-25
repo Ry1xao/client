@@ -315,6 +315,7 @@ func (l *TeamLoader) load1(ctx context.Context, me keybase1.UserVersion, lArg ke
 	// TODO make sure it still works if we're in jail. we need
 	// some logic that filters jailed bros out of the random selection BUT
 	// still allows it when manually auditing
+	// TODO it is terrible to do a db op for every team load. Use an LRU CACHE
 	if l.G().GetTeamBoxAuditor().IsInJail(teamID) {
 		// NEED TO RETRY RN! With a rotate!
 		return nil, fmt.Errorf("")
