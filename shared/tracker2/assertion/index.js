@@ -396,7 +396,12 @@ class Assertion extends React.PureComponent<Props, State> {
 }
 
 const styles = Styles.styleSheetCreate({
-  container: {flexShrink: 0, paddingBottom: 4, paddingTop: 4},
+  container: Styles.platformStyles({
+    common: {flexShrink: 0, paddingBottom: 4, paddingTop: 4},
+    isElectron: {
+      ...Styles.desktopStyles.windowDraggingClickable,
+    },
+  }),
   crypto: Styles.platformStyles({
     isElectron: {display: 'inline-block', fontSize: 11, wordBreak: 'break-all'},
   }),
