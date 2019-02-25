@@ -237,7 +237,12 @@ const styles = Styles.styleSheetCreate({
     isElectron: {boxShadow: 'rgba(0, 0, 0, 0.15) 0px 0px 3px'},
   }),
   chatIcon: {marginRight: Styles.globalMargins.tiny},
-  close: {padding: Styles.globalMargins.tiny},
+  close: Styles.platformStyles({
+    common: {padding: Styles.globalMargins.tiny},
+    isElectron: {
+      ...Styles.desktopStyles.windowDraggingClickable,
+    },
+  }),
   container: Styles.platformStyles({
     isElectron: {
       ...Styles.desktopStyles.windowDragging,
