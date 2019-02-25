@@ -281,13 +281,18 @@ const styles = Styles.styleSheetCreate({
     flexShrink: 0,
     height: barHeight,
   },
-  teamShowcases: {
-    backgroundColor: Styles.globalColors.white,
-    flexShrink: 0,
-    paddingLeft: Styles.globalMargins.medium,
-    paddingRight: Styles.globalMargins.small,
-    paddingTop: Styles.globalMargins.small,
-  },
+  teamShowcases: Styles.platformStyles({
+    common: {
+      backgroundColor: Styles.globalColors.white,
+      flexShrink: 0,
+      paddingLeft: Styles.globalMargins.medium,
+      paddingRight: Styles.globalMargins.small,
+      paddingTop: Styles.globalMargins.small,
+    },
+    isElectron: {
+      ...Styles.desktopStyles.windowDraggingClickable,
+    },
+  }),
 })
 
 export default Tracker
