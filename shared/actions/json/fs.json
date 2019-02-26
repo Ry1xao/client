@@ -112,8 +112,8 @@
     "setDriverStatus": {
       "driverStatus": "Types.DriverStatus"
     },
-    "hideFileUIBanner": {},
-    "showFileUIBanner": {},
+    "hideSystemFileManagerIntegrationBanner": {},
+    "showSystemFileManagerIntegrationBanner": {},
     "driverEnable": {
       "isRetry?": "?boolean"
     },

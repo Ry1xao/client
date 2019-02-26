@@ -324,13 +324,13 @@ export type DriverStatusEnabled = I.RecordOf<_DriverStatusEnabled>
 
 export type DriverStatus = DriverStatusUnknown | DriverStatusDisabled | DriverStatusEnabled
 
-export type _FileUI = {
+export type _SystemFileManagerIntegration = {
   driverStatus: DriverStatus,
-  // This only controls if fileui-banner is shown in Folders view. The banner
-  // always shows in Settings/Files screen.
+  // This only controls if system-file-manager-integration-banner is shown in
+  // Folders view. The banner always shows in Settings/Files screen.
   showingBanner: boolean,
 }
-export type FileUI = I.RecordOf<_FileUI>
+export type SystemFileManagerIntegration = I.RecordOf<_SystemFileManagerIntegration>
 
 export type _State = {
   pathItems: PathItems,
@@ -340,7 +340,7 @@ export type _State = {
   loadingPaths: I.Map<Path, I.Set<string>>,
   downloads: Downloads,
   uploads: Uploads,
-  fileUI: FileUI,
+  sfmi: SystemFileManagerIntegration,
   localHTTPServerInfo: ?LocalHTTPServer,
   errors: I.Map<string, FsError>,
   tlfUpdates: UserTlfUpdates,

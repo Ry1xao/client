@@ -203,16 +203,17 @@ export const makeDriverStatusDisabled: I.RecordFactory<Types._DriverStatusDisabl
 
 export const defaultDriverStatus = isLinux ? makeDriverStatusEnabled() : makeDriverStatusUnknown()
 
-export const makeFileUI: I.RecordFactory<Types._FileUI> = I.Record({
-  driverStatus: defaultDriverStatus,
-  showingBanner: false,
-})
+export const makeSystemFileManagerIntegration: I.RecordFactory<Types._SystemFileManagerIntegration> = I.Record(
+  {
+    driverStatus: defaultDriverStatus,
+    showingBanner: false,
+  }
+)
 
 export const makeState: I.RecordFactory<Types._State> = I.Record({
   downloads: I.Map(),
   edits: I.Map(),
   errors: I.Map(),
-  fileUI: makeFileUI(),
   fuseStatus: 'unknown',
   loadingPaths: I.Map(),
   localHTTPServerInfo: null,
@@ -221,6 +222,7 @@ export const makeState: I.RecordFactory<Types._State> = I.Record({
   pathItems: I.Map([[Types.stringToPath('/keybase'), makeFolder()]]),
   pathUserSettings: I.Map([[Types.stringToPath('/keybase'), makePathUserSetting()]]),
   sendLinkToChat: makeSendLinkToChat(),
+  sfmi: makeSystemFileManagerIntegration(),
   tlfUpdates: I.List(),
   tlfs: makeTlfs(),
   uploads: makeUploads(),
