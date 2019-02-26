@@ -1,9 +1,22 @@
 package storage
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/keybase/client/go/chat/globals"
+	"github.com/keybase/client/go/chat/utils"
+)
 
 type locksRepo struct {
-	Storage, Inbox, Outbox, Version, ConvFailures sync.Mutex
+	Inbox, Outbox, Version, ConvFailures sync.Mutex
+	StorageLockTab                       *utils.ConversationLockTab
 }
 
-var locks locksRepo
+var initLocksOnce sync.Once
+var locks = &locksRepo{}
+
+func (l *locksRepo) initOnce(g *globals.Context) {
+	initLocksOnce.Do(func() {
+		l.StorageLockTab = utils.NewConversationLockTab(g)
+	})
+}

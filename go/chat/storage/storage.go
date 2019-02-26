@@ -67,6 +67,7 @@ func (d DummyAssetDeleter) DeleteAssets(ctx context.Context, uid gregor1.UID, co
 }
 
 func New(g *globals.Context, assetDeleter AssetDeleter) *Storage {
+	locks.initOnce(g)
 	return &Storage{
 		Contextified:     globals.NewContextified(g),
 		engine:           newBlockEngine(g),
@@ -314,9 +315,19 @@ func (h *HoleyResultCollector) Holes() int {
 	return h.holes
 }
 
+func (s *Storage) lockConv(ctx context.Context, convID chat1.ConversationID, uid gregor1.UID) (func(), Error) {
+	if _, err := locks.StorageLockTab.Acquire(ctx, uid, convID); err != nil {
+		return nil, NewInternalError(ctx, s.DebugLabeler, "Acquire error: %v", err)
+	}
+	return func() { locks.StorageLockTab.Release(ctx, uid, convID) }, nil
+}
+
 func (s *Storage) Nuke(ctx context.Context, convID chat1.ConversationID, uid gregor1.UID) Error {
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return err
+	}
+	defer unlockConv()
 	return s.maybeNukeLocked(ctx, true /* force */, nil /* error */, convID, uid)
 }
 
@@ -345,15 +356,21 @@ func (s *Storage) maybeNukeLocked(ctx context.Context, force bool, err Error, co
 func (s *Storage) SetMaxMsgID(ctx context.Context, convID chat1.ConversationID, uid gregor1.UID,
 	msgID chat1.MessageID) (err Error) {
 	defer s.Trace(ctx, func() error { return err }, "SetMaxMsgID")()
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return err
+	}
+	defer unlockConv()
 	return s.idtracker.bumpMaxMessageID(ctx, convID, uid, msgID)
 }
 
 func (s *Storage) GetMaxMsgID(ctx context.Context, convID chat1.ConversationID, uid gregor1.UID) (maxMsgID chat1.MessageID, err Error) {
 	defer s.Trace(ctx, func() error { return err }, "GetMaxMsgID")()
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return 0, err
+	}
+	defer unlockConv()
 
 	if maxMsgID, err = s.idtracker.getMaxMessageID(ctx, convID, uid); err != nil {
 		return maxMsgID, s.maybeNukeLocked(ctx, false, err, convID, uid)
@@ -392,11 +409,11 @@ func (s *Storage) Expunge(ctx context.Context,
 func (s *Storage) MergeHelper(ctx context.Context,
 	convID chat1.ConversationID, uid gregor1.UID, msgs []chat1.MessageUnboxed, expunge *chat1.Expunge) (res MergeResult, err Error) {
 	defer s.Trace(ctx, func() error { return err }, "MergeHelper")()
-
-	// All public functions get locks to make access to the database single threaded.
-	// They should never be called from private functions.
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return res, err
+	}
+	defer unlockConv()
 
 	s.Debug(ctx, "MergeHelper: convID: %s uid: %s num msgs: %d", convID, uid, len(msgs))
 
@@ -822,11 +839,12 @@ func (s *Storage) clearUpthrough(ctx context.Context, convID chat1.ConversationI
 func (s *Storage) ClearBefore(ctx context.Context, convID chat1.ConversationID, uid gregor1.UID,
 	upto chat1.MessageID) (err Error) {
 	defer s.Trace(ctx, func() error { return err }, "ClearBefore")()
-	// All public functions get locks to make access to the database single threaded.
-	// They should never be called from private functions.
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return err
+	}
+	defer unlockConv()
 	s.Debug(ctx, "ClearBefore: convID: %s uid: %s msgID: %d", convID, uid, upto)
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
 
 	// Abort, we don't want to overflow uint (chat1.MessageID)
 	if upto == 0 {
@@ -837,10 +855,11 @@ func (s *Storage) ClearBefore(ctx context.Context, convID chat1.ConversationID, 
 
 func (s *Storage) ClearAll(ctx context.Context, convID chat1.ConversationID, uid gregor1.UID) (err Error) {
 	defer s.Trace(ctx, func() error { return err }, "ClearAll")()
-	// All public functions get locks to make access to the database single threaded.
-	// They should never be called from private functions.
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return err
+	}
+	defer unlockConv()
 	maxMsgID, err := s.idtracker.getMaxMessageID(ctx, convID, uid)
 	if err != nil {
 		return err
@@ -966,11 +985,12 @@ func (s *Storage) fetchUpToMsgIDLocked(ctx context.Context, rc ResultCollector,
 func (s *Storage) FetchUpToLocalMaxMsgID(ctx context.Context,
 	convID chat1.ConversationID, uid gregor1.UID, rc ResultCollector, iboxMaxMsgID chat1.MessageID,
 	query *chat1.GetThreadQuery, pagination *chat1.Pagination) (res FetchResult, err Error) {
-	// All public functions get locks to make access to the database single threaded.
-	// They should never be called from private functions.
 	defer s.Trace(ctx, func() error { return err }, "FetchUpToLocalMaxMsgID")()
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return res, err
+	}
+	defer unlockConv()
 
 	maxMsgID, err := s.idtracker.getMaxMessageID(ctx, convID, uid)
 	if err != nil {
@@ -988,11 +1008,12 @@ func (s *Storage) FetchUpToLocalMaxMsgID(ctx context.Context,
 
 func (s *Storage) Fetch(ctx context.Context, conv chat1.Conversation,
 	uid gregor1.UID, rc ResultCollector, query *chat1.GetThreadQuery, pagination *chat1.Pagination) (res FetchResult, err Error) {
-	// All public functions get locks to make access to the database single threaded.
-	// They should never be called from private functions.
 	defer s.Trace(ctx, func() error { return err }, "Fetch")()
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, conv.GetConvID(), uid)
+	if err != nil {
+		return res, err
+	}
+	defer unlockConv()
 
 	return s.fetchUpToMsgIDLocked(ctx, rc, conv.Metadata.ConversationID, uid, conv.ReaderInfo.MaxMsgid,
 		query, pagination)
@@ -1001,8 +1022,11 @@ func (s *Storage) Fetch(ctx context.Context, conv chat1.Conversation,
 func (s *Storage) FetchMessages(ctx context.Context, convID chat1.ConversationID,
 	uid gregor1.UID, msgIDs []chat1.MessageID) (res []*chat1.MessageUnboxed, err Error) {
 	defer s.Trace(ctx, func() error { return err }, "FetchMessages")()
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return res, err
+	}
+	defer unlockConv()
 	if err = isAbortedRequest(ctx); err != nil {
 		return res, err
 	}
@@ -1038,8 +1062,11 @@ func (s *Storage) FetchMessages(ctx context.Context, convID chat1.ConversationID
 func (s *Storage) FetchUnreadlineID(ctx context.Context, convID chat1.ConversationID,
 	uid gregor1.UID, readMsgID chat1.MessageID) (msgID *chat1.MessageID, err Error) {
 	defer s.Trace(ctx, func() error { return err }, "FetchUnreadlineID")()
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer unlockConv()
 	if err = isAbortedRequest(ctx); err != nil {
 		return nil, err
 	}

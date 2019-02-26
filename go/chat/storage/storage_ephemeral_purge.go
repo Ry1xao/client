@@ -18,9 +18,11 @@ func (s *Storage) GetAllPurgeInfo(ctx context.Context, uid gregor1.UID) (allPurg
 // time we need to purge this conv.
 func (s *Storage) EphemeralPurge(ctx context.Context, convID chat1.ConversationID, uid gregor1.UID, purgeInfo *chat1.EphemeralPurgeInfo) (newPurgeInfo *chat1.EphemeralPurgeInfo, explodedMsgs []chat1.MessageUnboxed, err Error) {
 	defer s.Trace(ctx, func() error { return err }, "EphemeralPurge")()
-
-	locks.Storage.Lock()
-	defer locks.Storage.Unlock()
+	unlockConv, err := s.lockConv(ctx, convID, uid)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer unlockConv()
 
 	if purgeInfo == nil {
 		return nil, nil, nil

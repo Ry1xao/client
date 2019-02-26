@@ -1398,7 +1398,7 @@ func (s *Deliverer) deliverLoop() {
 			bctx := Context(context.Background(), s.G(), obr.IdentifyBehavior, &breaks,
 				s.identNotifier)
 			if s.testingNameInfoSource != nil {
-				bctx = CtxAddTestingNameInfoSource(bctx, s.testingNameInfoSource)
+				bctx = CtxAddOverrideNameInfoSource(bctx, s.testingNameInfoSource)
 			}
 			if !s.connected {
 				err = errors.New("disconnected from chat server")
@@ -1509,7 +1509,7 @@ func (s *NonblockingSender) Send(ctx context.Context, convID chat1.ConversationI
 		Prev:        clientPrev,
 		ComposeTime: gregor1.ToTime(time.Now()),
 	}
-	identifyBehavior, _, _ := IdentifyMode(ctx)
+	identifyBehavior, _, _ := types.IdentifyMode(ctx)
 	obr, err := s.G().MessageDeliverer.Queue(ctx, convID, msg, outboxID, identifyBehavior)
 	if err != nil {
 		return obr.OutboxID, nil, err
