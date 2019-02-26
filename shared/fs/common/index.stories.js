@@ -13,6 +13,7 @@ import PathItemInfo from './path-item-info'
 import TlfInfo from './tlf-info'
 import Loading from './loading'
 import Errs from './errs'
+import OpenInSystemFileManager from './open-in-system-file-manager'
 import {type OwnProps as PathItemIconOwnProps} from './path-item-icon-container'
 import {type OwnProps as PathItemInfoOwnProps} from './path-item-info-container'
 
@@ -58,8 +59,8 @@ export const commonProvider = {
     errs: [],
   }),
   ConnectedOpenInSystemFileManager: () => ({
-    installFuse: Sb.action('installFuse'),
-    kbfsEnabled: false,
+    driverEnabled: false,
+    enableDriver: Sb.action('enableDriver'),
     openInSystemFileManager: Sb.action('openInSystemFileManager'),
   }),
   PathItemAction: pathItemActionProps,
@@ -206,6 +207,22 @@ const load = () => {
         <PathItemInfo mode="default" lastModifiedTimestamp={1545110765} lastWriter="songgao_test" />
         <Kb.Text type="Body">mode=row</Kb.Text>
         <PathItemInfo mode="row" lastModifiedTimestamp={1545110765} lastWriter="songgao_test" />
+      </Kb.Box2>
+    ))
+    .add('OpenInSystemFileManager', () => (
+      <Kb.Box2 direction="vertical" gap="small">
+        <Kb.Text type="Body">disabled</Kb.Text>
+        <OpenInSystemFileManager
+          driverEnabled={false}
+          openInSystemFileManager={Sb.action('openInSystemFileManager')}
+          enableDriver={Sb.action('enableDriver')}
+        />
+        <Kb.Text type="Body">enabled</Kb.Text>
+        <OpenInSystemFileManager
+          driverEnabled={true}
+          openInSystemFileManager={Sb.action('openInSystemFileManager')}
+          enableDriver={Sb.action('enableDriver')}
+        />
       </Kb.Box2>
     ))
 
